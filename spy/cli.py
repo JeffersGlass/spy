@@ -327,6 +327,7 @@ async def inner_main(args: Arguments) -> None:
 
     importer = ImportAnalizyer(vm, modname)
     importer.parse_all()
+    orig_mod = importer.getmod(modname)
 
     if args.parse and not args.redshift:
         mod = importer.getmod(modname)
@@ -368,7 +369,10 @@ async def inner_main(args: Arguments) -> None:
     vm.redshift(error_mode=args.error_mode)
     if args.redshift:
         if args.parse:
-            dump_spy_mod_ast(vm, modname, colorize=args.colorize)
+            if args.colorize:
+                orig_mod.pp() # color_mode='redshift')
+            else:
+                dump_spy_mod_ast(vm, modname, colorize=args.colorize)
         else:
             dump_spy_mod(vm, modname, args.full_fqn)
         return

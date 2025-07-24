@@ -53,7 +53,7 @@ class Dumper(TextBuilder):
         name = node.__class__.__name__
         fields = list(node.__class__.__dataclass_fields__)
         fields = [f for f in fields if f not in self.fields_to_ignore]
-        self._dump_node(node, name, fields, color='blue')
+        self._dump_node(node, name, fields, color='turquoise')
 
     def dump_py_node(self, node: py_ast.AST) -> None:
         name = 'py:' + node.__class__.__name__
@@ -73,6 +73,10 @@ class Dumper(TextBuilder):
         #
         if node is self.highlight:
             color = 'red'
+
+        if isinstance(node, spy.ast.Expr) and node.color is not None:
+            color = node.color
+
         self.write(name, color=color)
         self.write('(')
         if multiline:
