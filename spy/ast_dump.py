@@ -35,7 +35,7 @@ class Dumper(TextBuilder):
         super().__init__(use_colors=use_colors)
         self.highlight = highlight
         self.fields_to_ignore = ('loc', 'target_loc', 'target_locs',
-                                 'loc_asname')
+                                 'loc_asname', 'xxx_color')
 
     def dump_anything(self, obj: Any) -> None:
         if isinstance(obj, spy.ast.Node):
@@ -74,8 +74,8 @@ class Dumper(TextBuilder):
         if node is self.highlight:
             color = 'red'
 
-        if isinstance(node, spy.ast.Expr) and node.color is not None:
-            color = node.color
+        if isinstance(node, spy.ast.Expr) and node.xxx_color is not None:
+            color = node.xxx_color
 
         self.write(name, color=color)
         self.write('(')
@@ -83,8 +83,6 @@ class Dumper(TextBuilder):
             self.writeline('')
         with self.indent():
             for field, value in zip(fields, values):
-                if field == 'color' and value is None:
-                    continue
                 is_last = (field is fields[-1])
                 self.write(f'{field}=')
                 self.dump_anything(value)
