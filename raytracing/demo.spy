@@ -6,6 +6,8 @@ from _range import range
 from math import sqrt, tan, fabs
 from time import sleep, time
 
+BENCHMARK = False
+
 @struct
 class Vec3:
     x: float
@@ -250,14 +252,16 @@ def animate() -> None:
     last_fps_time = time()
     fps = 0.0
 
-    # Enter alternate screen buffer
-    print('\033[?1049h')
-    # Hide cursor
-    print('\033[?25l')
+    if BENCHMARK == False:
+        # Enter alternate screen buffer
+        print('\033[?1049h')
+        # Hide cursor
+        print('\033[?25l')
 
     last_frame_time = time()
+    max_frames = 300
 
-    while frame_count < 300:
+    while frame_count < max_frames:
         # Measure actual frame time
         current_time = time()
         dt = current_time - last_frame_time
@@ -278,12 +282,35 @@ def animate() -> None:
             if fabs(vy) < 0.3:
                 vy = 0.0
 
-        # Move cursor to home
-        print('\033[H')
-
         # Render current frame
         ball_pos = Vec3(x, y, z)
-        render_frame(width, height, ball_pos)
+
+        if BENCHMARK == False:
+            # Move cursor to home
+            print('\033[H')
+            render_frame(width, height, ball_pos)
+        else:
+            # In benchmark mode, still trace rays but don't render to screen
+            objects = List[Object]()
+            sphere1 = Sphere(ball_pos, 0.8, Color(1.0, 0.3, 0.3))
+            objects.append(Object(0, sphere1, Plane(Vec3(0.0, 0.0, 0.0), Vec3(0.0, 1.0, 0.0), Color(0.0, 0.0, 0.0))))
+            sphere2 = Sphere(Vec3(2.5, -0.3, -6.0), 1.0, Color(0.3, 0.3, 1.0))
+            objects.append(Object(0, sphere2, Plane(Vec3(0.0, 0.0, 0.0), Vec3(0.0, 1.0, 0.0), Color(0.0, 0.0, 0.0))))
+            plane1 = Plane(Vec3(0.0, -1.5, 0.0), vec3_normalize(Vec3(0.0, 1.0, 0.0)), Color(0.7, 0.7, 0.7))
+            objects.append(Object(1, Sphere(Vec3(0.0, 0.0, 0.0), 0.0, Color(0.0, 0.0, 0.0)), plane1))
+
+            light_dir = vec3_normalize(Vec3(0.5, 1.0, 0.3))
+            camera_pos = Vec3(0.0, 0.0, 0.0)
+            aspect_ratio = float(width) / float(height)
+            fov = 3.14159265358979323846 / 3.0
+
+            for py in range(height):
+                for px in range(width):
+                    px_norm = (2.0 * (float(px) + 0.5) / float(width) - 1.0) * aspect_ratio * tan(fov / 2.0)
+                    py_norm = (1.0 - 2.0 * (float(py) + 0.5) / float(height)) * tan(fov / 2.0)
+                    direction = vec3_normalize(Vec3(px_norm, py_norm, -1.0))
+                    ray = Ray(camera_pos, direction)
+                    trace_ray(ray, objects, light_dir)
 
         # Update FPS counter
         frame_count = frame_count + 1
@@ -292,8 +319,12 @@ def animate() -> None:
             fps = float(fps_update_interval) / elapsed
             last_fps_time = current_time
 
-        # Display info
-        print('FPS: ' + str(int(fps)) + ' | Frame: ' + str(frame_count))
+            if BENCHMARK:
+                print('Frame: ' + str(frame_count) + ' | FPS: ' + str(int(fps)))
+
+        if BENCHMARK == False:
+            # Display info
+            print('FPS: ' + str(int(fps)) + ' | Frame: ' + str(frame_count))
 
         # Reset if ball goes too far right
         if x > 5.0:
@@ -304,12 +335,14 @@ def animate() -> None:
             vy = 0.0
             vz = 0.0
 
-    # Show cursor
-    print('\033[?25h')
-    # Exit alternate screen buffer
-    print('\033[?1049l')
+    if BENCHMARK == False:
+        # Show cursor
+        print('\033[?25h')
+        # Exit alternate screen buffer
+        print('\033[?1049l')
+
     print('Animation stopped.')
-    print('FPS: ' + str(int(fps)) + ' | Frame: ' + str(frame_count))
+    print('Final FPS: ' + str(int(fps)) + ' | Total frames: ' + str(frame_count))
 
 def main() -> None:
     animate()
