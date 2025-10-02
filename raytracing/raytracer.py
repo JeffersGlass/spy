@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Simple ASCII raytracer with ANSI color support"""
 
+import os
 import math
 from dataclasses import dataclass
 from typing import Optional, Tuple
@@ -170,4 +171,6 @@ def render(width: int, height: int):
 
 
 if __name__ == '__main__':
-    render(120, 40)
+    size = os.get_terminal_size()
+    #render(120, 40)
+    render(size.columns, size.lines)
