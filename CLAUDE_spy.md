@@ -9,6 +9,8 @@ If you need to understand more, feel free to read:
   - stdlib/*.spy
   - examples/*.spy (WARNING: some of them are marked as "broken", ignore them)
 
+
+
 ## `main` function
 Execution starts with the `main` function, which must return `None`:
 ```spy
@@ -397,7 +399,7 @@ while i < 10:
     i = i + 1
 ```
 
-### For Loops (range)
+### For Loops:
 You need to import `range` explicitly:
 ```spy
 from _range import range
@@ -406,37 +408,7 @@ for i in range(10):
     print(i)
 ```
 
-### For Loops (Fast Iteration)
-For loops require custom iterator protocol:
-```spy
-@struct
-class range_iterator:
-    i: int
-    stop: int
-    step: int
-
-    def __next__(self: range_iterator) -> range_iterator:
-        return range_iterator(self.i + self.step, self.stop, self.step)
-
-    def __item__(self: range_iterator) -> int:
-        return self.i
-
-    def __continue_iteration__(self: range_iterator) -> bool:
-        return self.i < self.stop
-
-@struct
-class range:
-    start: int
-    stop: int
-    step: int
-
-    def __fastiter__(self: range) -> range_iterator:
-        return range_iterator(self.start, self.stop, self.step)
-
-# Usage
-for i in range(0, 10, 1):
-    print(i)
-```
+**IMPORTANT**: when in doubt, prefer using `for i in range(...)` over the equivalent `while`.
 
 ## Modules & Imports
 
