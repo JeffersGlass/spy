@@ -3,6 +3,8 @@
 ## Overview
 SPy is a statically-typed variant of Python designed for performance-critical applications. It compiles to C/WASM and provides low-level control while maintaining Python-like syntax.
 
+If during coding you encounter limitations and/or missing features, please add them to "Current limitations" section.
+
 ## Type System
 
 ### Primitive Types
