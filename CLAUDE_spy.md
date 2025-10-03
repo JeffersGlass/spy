@@ -5,7 +5,16 @@ SPy is a statically-typed variant of Python designed for performance-critical ap
 
 If during coding you encounter limitations and/or missing features, please add them to "Current limitations" section.
 
-If you need to understand more, feel free to all the *.spy files in the stdlib directory.
+If you need to understand more, feel free to read:
+  - stdlib/*.spy
+  - examples/*.spy (WARNING: some of them are marked as "broken", ignore them)
+
+## `main` function
+Execution starts with the `main` function, which must return `None`:
+```spy
+def main() -> None:
+    print('hello world')
+```
 
 ## Type System
 
@@ -388,6 +397,15 @@ while i < 10:
     i = i + 1
 ```
 
+### For Loops (range)
+You need to import `range` explicitly:
+```spy
+from _range import range
+
+for i in range(10):
+    print(i)
+```
+
 ### For Loops (Fast Iteration)
 For loops require custom iterator protocol:
 ```spy
@@ -523,6 +541,7 @@ These features are **not yet implemented** but planned for the future:
 11. **Default arguments**: Not supported
 12. **Keyword arguments**: Not supported
 13. **Multiple return values**: no support for tuples, use a struct.
+14. **Print arguments**: `print` takes only one argument
 
 ## Best Practices
 
