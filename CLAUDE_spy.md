@@ -37,7 +37,8 @@ class Point:
     x: i32
     y: i32
 
-# Create a struct instance
+# Create a struct instance using the default constructor
+# By default, __new__ takes all fields in order
 p = Point(3, 4)
 
 # Access fields (read-only on stack-allocated structs)
@@ -46,7 +47,9 @@ value = p.x + p.y
 
 **Key Points:**
 - Structs are **immutable** when allocated on the stack
-- Use `Point.__make__(x, y)` as an alternative constructor
+- You cannot mutate struct fields, but you can replace the entire struct with a new value
+- By default, `StructName(field1, field2, ...)` creates an instance (calls the default `__new__`)
+- Use `Point.__make__(x, y)` as an alternative low-level constructor
 - Structs can have methods with explicit `self` parameter
 - Structs can be nested
 
@@ -66,6 +69,7 @@ distance = p.hypot()  # Returns 5.0
 ```
 
 ### Custom Constructors
+Custom constructors are defined with `__new__()` and must call `__make__()` with all fields:
 ```spy
 @struct
 class Point:
@@ -77,6 +81,60 @@ class Point:
 
 # Usage
 p = Point()  # Creates Point(0, 0)
+```
+
+You can also define constructors with parameters:
+```spy
+@struct
+class Point:
+    x: i32
+    y: i32
+
+    def __new__(value: i32) -> Point:
+        return Point.__make__(value, value)
+
+# Usage
+p = Point(5)  # Creates Point(5, 5)
+```
+
+**Important:** Custom `__new__()` methods must always call `StructName.__make__()` with all struct fields in order.
+
+### Working with Immutable Structs
+Since stack-allocated structs are immutable, you cannot modify fields directly. Instead, create methods that return new instances:
+
+```spy
+@struct
+class Counter:
+    value: i32
+
+    def increment(self: Counter) -> Counter:
+        return Counter(self.value + 1)
+
+# Usage - reassign the variable with the new value
+counter = Counter(0)
+counter = counter.increment()  # counter.value is now 1
+counter = counter.increment()  # counter.value is now 2
+```
+
+This pattern is essential for struct-based state management:
+```spy
+@struct
+class Random:
+    state: i32
+
+    def next(self: Random) -> Random:
+        # Return new Random with updated state
+        new_state = (1103515245 * self.state + 12345) & 0x7fffffff
+        return Random(new_state)
+
+    def get_value(self: Random) -> i32:
+        return self.state
+
+# Usage
+rng = Random(42)
+rng = rng.next()  # Update to next state
+value = rng.get_value()
+rng = rng.next()  # Update again
 ```
 
 ## Unsafe Pointers & Memory Management
