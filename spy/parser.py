@@ -131,7 +131,7 @@ class Parser:
         mod = spy.ast.Module(
             loc=loc, filename=self.filename, decls=[], docstring=docstring
         )
-        _current_module = mod
+        self._current_module = mod
 
         for py_stmt in py_body:
             if isinstance(py_stmt, py_ast.FunctionDef):
@@ -162,8 +162,6 @@ class Parser:
                     "only function and variable definitions are allowed at global scope"
                 )
                 self.error(msg, "this is not allowed here", py_stmt.loc)
-
-        mod.pp()
         
         return mod
 
@@ -171,6 +169,11 @@ class Parser:
         if not self._current_module: 
             print("No current module set")
             return
+
+        if '_list.spy' in self._current_module.filename:
+            print("No need to import list within list")
+            return
+
         imports = [d for d in self._current_module.decls if isinstance(d, spy.ast.Import)]
         if any((i.ref.attr == "List" and i.ref.modname == "_list") for i in imports): 
             print("_List is already imported, No need to import again")
@@ -183,15 +186,14 @@ class Parser:
             attr = "List"
         )
         list_imp = spy.ast.Import(
-            loc = call_node.loc,
-            loc_asname = call_node.loc,
+            loc = Loc.fake(),
+            loc_asname = Loc.fake(),
             ref = ref,
             asname = "List"
         )
-        mod.decls.append(list_imp)
+        self._current_module.decls.append(list_imp)
         print("_list.List has been imported")
         
-    @j
     def from_py_stmt_FunctionDef(
         self, py_funcdef: py_ast.FunctionDef
     ) -> spy.ast.FuncDef:
@@ -241,7 +243,6 @@ class Parser:
 
         docstring, py_body = self.get_docstring_maybe(py_funcdef.body)
         self.for_loop_seq = 0  # reset counter for this function
-        print(f"Function body: {py_body}")
         body = self.from_py_body(py_body)
 
         return spy.ast.FuncDef(
@@ -615,7 +616,6 @@ class Parser:
 
     # ====== spy.ast.Expr ======
 
-    @j
     def from_py_expr(self, py_node: py_ast.expr) -> spy.ast.Expr:
         return magic_dispatch(self, "from_py_expr", py_node)
 
@@ -659,14 +659,11 @@ class Parser:
 
     def from_py_expr_List(self, py_node: py_ast.List) -> spy.ast.List:
         py_node._loc = getattr(py_node, "_loc", Loc.fake())
-        print(f"{py_node=}")
-
         call_node = self.create_global_func_for_List(py_node)
         self.maybe_inject_builtin_List()
         return call_node
 
-    @j
-    def create_global_func_for_List(self, py_node: py_ast.List) -> str:
+    def create_global_func_for_List(self, py_node: py_ast.List) -> spy.ast.Call:
         # Build a Python function to compile as a global function
         func_name = "f" + str(uuid4()).replace("-", "")[:12]
         list_name = "l" + str(uuid4()).replace("-", "")[:12]
@@ -704,18 +701,32 @@ class Parser:
                 )
             )
 
-        print("body:")
-        for b in body:
-            print(f"\t{b}")
-
-        _py_func_def = py_ast.FunctionDef(func_name, args=py_ast.arguments(varargs=[py_ast.arg(r'items')]), body = body, decorator_list = [], returns = None)
-        _py_func_def._loc = py_node.loc
+        #returns=py:Name(id='list', ctx=py:Load(), spy_varkind=None)
+        # py_ast.Name(id='List', _loc=py_node.loc)
+        _py_func_def = py_ast.FunctionDef(func_name, args=py_ast.arguments(varargs=[py_ast.arg(r'items')]), body = body, decorator_list = [], returns = py_ast.Call(
+            _loc=py_node.loc,
+            func=py_ast.Name(
+                _loc=py_node.loc,
+                id='type'
+            ),
+            args = [py_ast.Constant(_loc=py_node.loc, value=1)]
+        ))
+        _py_func_def._loc = py_node.loc  
 
         spy_funcdef = self.from_py_stmt_FunctionDef(_py_func_def)
         globfunc = spy.ast.GlobalFuncDef(_py_func_def.loc, spy_funcdef)
-        self._current_module.decls.append(globfunc)
+        self._current_module.decls = [globfunc] + self._current_module.decls
 
-        return func_name
+        spy_call_node = spy.ast.Call(
+            loc=py_node.loc,
+            func = spy.ast.Name(
+                loc=py_node.loc,
+                id=func_name
+            ),
+            args = []
+        )
+
+        return spy_call_node
 
 
     def from_py_expr_Tuple(self, py_node: py_ast.Tuple) -> spy.ast.Tuple:
@@ -793,7 +804,6 @@ class Parser:
     def from_py_expr_Call(
         self, py_node: py_ast.Call
     ) -> spy.ast.Call | spy.ast.CallMethod:
-        print(f"Evaluating from_py_expr_Call {py_node}")
         if py_node.keywords:
             self.unsupported(py_node.keywords[0], "keyword arguments")
         func = self.from_py_expr(py_node.func)
