@@ -261,6 +261,13 @@ class SPyVM:
                 return fqn2
         assert False, "unreachable"
 
+    def j(func) -> Any:
+        def inner(*args, **kwargs):
+            print(f"Calling {func.__name__} with\n\t{args=}\n\t{kwargs=}")
+            return func(*args, **kwargs)
+        return inner
+
+    @j
     def lookup_ImportRef(self, impref: ImportRef) -> Optional[W_Object]:
         w_mod = self.modules_w.get(impref.modname)
         if impref.attr is None:

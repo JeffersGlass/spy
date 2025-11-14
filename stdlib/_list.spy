@@ -229,7 +229,7 @@ def List(T):
 
                     return True
 
-                return OpSpec(eq_impl, [m_self, m_other])
+                return OpSpec(eq_impl, m_self, m_other)
             else:
                 return OpSpec.NULL
 
