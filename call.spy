@@ -1,0 +1,5 @@
+def foo() -> None:
+    pass
+
+def main() -> None:
+    foo()
