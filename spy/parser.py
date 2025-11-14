@@ -1,7 +1,7 @@
 import ast as py_ast
-from uuid import uuid4
 from types import NoneType
-from typing import NoReturn, Optional, Iterable
+from typing import Iterable, NoReturn, Optional
+from uuid import uuid4
 
 import spy.ast
 from spy.analyze.symtable import ImportRef
@@ -10,6 +10,7 @@ from spy.fqn import FQN
 from spy.location import Loc
 from spy.magic_py_parse import magic_py_parse
 from spy.util import magic_dispatch
+
 
 def j(func) -> Any:
     def inner(*args, **kwargs):
@@ -162,23 +163,23 @@ class Parser:
                     "only function and variable definitions are allowed at global scope"
                 )
                 self.error(msg, "this is not allowed here", py_stmt.loc)
-        
+
         return mod
 
     def maybe_inject_builtin_List(self):
-        if not self._current_module: 
+        if not self._current_module:
             print("No current module set")
             return
 
-        if '_list.spy' in self._current_module.filename:
+        if "_list.spy" in self._current_module.filename:
             print("No need to import list within list")
             return
 
         imports = [d for d in self._current_module.decls if isinstance(d, spy.ast.Import)]
-        if any((i.ref.attr == "List" and i.ref.modname == "_list") for i in imports): 
+        if any((i.ref.attr == "List" and i.ref.modname == "_list") for i in imports):
             print("_List is already imported, No need to import again")
             return # _list.List already imported
-        
+
         print("_list.List has not yet been imported; let's do it now")
 
         ref = spy.ast.ImportRef(
@@ -193,7 +194,7 @@ class Parser:
         )
         self._current_module.decls.append(list_imp)
         print("_list.List has been imported")
-        
+
     def from_py_stmt_FunctionDef(
         self, py_funcdef: py_ast.FunctionDef
     ) -> spy.ast.FuncDef:
@@ -675,7 +676,7 @@ class Parser:
                     _loc=py_node.loc,
                     func = py_ast.Name(
                         _loc=py_node.loc,
-                        id='List'
+                        id="List"
                     ),
                     args = []
                     ),
@@ -703,15 +704,15 @@ class Parser:
 
         #returns=py:Name(id='list', ctx=py:Load(), spy_varkind=None)
         # py_ast.Name(id='List', _loc=py_node.loc)
-        _py_func_def = py_ast.FunctionDef(func_name, args=py_ast.arguments(varargs=[py_ast.arg(r'items')]), body = body, decorator_list = [], returns = py_ast.Call(
+        _py_func_def = py_ast.FunctionDef(func_name, args=py_ast.arguments(varargs=[py_ast.arg(r"items")]), body = body, decorator_list = [], returns = py_ast.Call(
             _loc=py_node.loc,
             func=py_ast.Name(
                 _loc=py_node.loc,
-                id='type'
+                id="type"
             ),
             args = [py_ast.Constant(_loc=py_node.loc, value=1)]
         ))
-        _py_func_def._loc = py_node.loc  
+        _py_func_def._loc = py_node.loc
 
         spy_funcdef = self.from_py_stmt_FunctionDef(_py_func_def)
         globfunc = spy.ast.GlobalFuncDef(_py_func_def.loc, spy_funcdef)
