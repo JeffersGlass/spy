@@ -8,7 +8,7 @@
 # if you're worred that pytest is messing something up
 # and to see output
 
-DEBUG = False
+DEBUG = True
 
 import sys
 IN_PYTEST = 'pytest' in sys.modules
@@ -48,12 +48,21 @@ def foo() -> None:
     a: i32 = 1 + 2
     print(a)
 """, 
+
     "list_literal": """\
 #list
 def main() -> None:
     m = [1,2,3]
     print(m)
-"""
+""",
+
+    "list_add": """\
+#list
+def main() -> None:
+    p = [1,2,3] + [4,5,6]
+    print(p)
+""",
+
 }
 
 @pytest.fixture
@@ -63,12 +72,13 @@ def xfail_selected_params(request):
     mode = request.getfixturevalue('mode')
 
     allowed_failures = [
-        ("list_literal", "compile")
+        ("list_literal", "compile"),
+        ("list_add", "compile")
     ]
     if (src_name, mode) in allowed_failures:
         request.node.add_marker(pytest.mark.xfail(reason='TODO'))
 
-@pytest.mark.parametrize("src_name", ["generic", "list_literal"])
+@pytest.mark.parametrize("src_name", ["generic", "list_literal", "list_add"])
 @pytest.mark.parametrize("mode", ["compile", "redshift_and_run"])
 async def test_list_j(src_name, mode, xfail_selected_params):
     # Write the source selection to a file
@@ -101,16 +111,20 @@ async def test_list_j(src_name, mode, xfail_selected_params):
     # TODO What can we assert here?
 
 
-    # Parse all imports
+    # Parse the python file, and find all imports
+    # I think (some?) the magic can happen here - as part of the parsing step, we
+    # we parse the imports. We can detect any List nodes at this stage
     importer.parse_all()
     assert importer.mods
-    debug(f"After parse_all() importer.mods = {shorten(str(importer.mods), 120)}")
+    debug(f"After parse_all() importer.mods={shorten(str(importer.mods), 120)}")
     # TODO What can we assert here?
 
 
-    # Import all modules found earlier
+    # Import all modules found earlier. Also does analyze_scopes
     importer.import_all()
-    debug(f"After import_all(), {shorten(str(vm.modules_w), 120)}")
+    debug(f"After import_all(), vm.modules_w={shorten(str(vm.modules_w), 120)}")
+    if 'list_test_src' in vm.modules_w:
+        debug(f"{vm.modules_w['list_test_src']=}")
     orig_mod = importer.getmod(modname) # Peek at the module we wanted to run
     w_mod = vm.modules_w[modname]
     debug(f"{w_mod=}")
@@ -123,7 +137,6 @@ async def test_list_j(src_name, mode, xfail_selected_params):
     
     # Run the Module
     if not args.compile:
-
         debug("--- Calling spy_main without compiling ---")
         execute_spy_main(args, vm, w_mod)
         debug("--- spy_main done ---")
@@ -154,4 +167,4 @@ async def test_list_j(src_name, mode, xfail_selected_params):
     
 if __name__ == "__main__":
     #asyncio.run(test_list_j(src_name='generic', mode='redshift_and_run'))
-    asyncio.run(test_list_j(src_name=src_name, mode=mode))
+    asyncio.run(test_list_j(src_name=src_name, mode=mode, xfail_selected_params=None))
