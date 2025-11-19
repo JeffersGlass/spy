@@ -56,14 +56,21 @@ def main() -> None:
 """
 }
 
+@pytest.fixture
+def xfail_selected_params(request):
+    # This is the feature we're implementing
+    src_name = request.getfixturevalue('src_name')
+    mode = request.getfixturevalue('mode')
+
+    allowed_failures = [
+        ("list_literal", "compile")
+    ]
+    if (src_name, mode) in allowed_failures:
+        request.node.add_marker(pytest.mark.xfail(reason='TODO'))
+
 @pytest.mark.parametrize("src_name", ["generic", "list_literal"])
 @pytest.mark.parametrize("mode", ["compile", "redshift_and_run"])
-# @pytest.mark.parametrize("src_name", ["generic"])
-# @pytest.mark.parametrize("do_compile_key", ["compile_True"])
-async def test_list_j(src_name, mode):
-    if IN_PYTEST:
-        if src_name == "list_literal" and mode == "compile":
-            pytest.xfail("This is the feature we're implementing")
+async def test_list_j(src_name, mode, xfail_selected_params):
     # Write the source selection to a file
     src = sources[src_name]
 
