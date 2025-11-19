@@ -1,0 +1,4 @@
+def main() -> None:
+    m = [1,2,3]
+    m.append(4)
+    print(m)
