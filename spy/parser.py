@@ -658,7 +658,11 @@ class Parser:
         attr = spy.ast.StrConst(py_node.loc, py_node.attr)
         return spy.ast.GetAttr(py_node.loc, value, attr)
 
-    def from_py_expr_List(self, py_node: py_ast.List) -> spy.ast.List:
+    def from_py_expr_List(self, py_node: py_ast.List) -> spy.ast.Call:
+        # When we see a list in the AST, we need to:
+        #   - Create a new function in the current scope which creates the list in question via a call to List
+        #   - Inject the def for this function priot the current _statement_
+        #   - Replace the List node with a call to this new argument with no functions in place
         py_node._loc = getattr(py_node, "_loc", Loc.fake())
         call_node = self.create_global_func_for_List(py_node)
         self.maybe_inject_builtin_List()
