@@ -6,40 +6,59 @@ from textwrap import dedent, shorten
 from pathlib import Path
 
 import pytest
+import py.path
 
 from spy.analyze.importing import ImportAnalyzer
+from spy.backend.c.cbackend import CBackend
+from spy.build.config import BuildConfig, BuildTarget, OutputKind
 from spy.cli import Arguments, execute_spy_main
 from spy.vm.vm import SPyVM
 
 
-SRC_FILE = Path('list_test_src.spy')
+SRC_FILE_PATH = Path('list_test_src.spy')
 
-GENERIC_SRC = """\
+sources = {
+    "generic": """\
+#Generic
 def main() -> None:
     a = 1 + 2
     print(a)
-"""
-
-LIST_SRC = """\
+""", 
+    "list_literal": """\
+#list
 def main() -> None:
     m = [1,2,3]
     m.append(4)
     print(m)
 """
+}
 
 def write_src(src):
-    with open(SRC_FILE, "w") as f:
+    with open(SRC_FILE_PATH, "w") as f:
         f.write(dedent(src))
 
-@pytest.mark.parametrize("redshift", [True, False])
-async def test_list_j(redshift):
-    print(f"\n---Running pipeline with {redshift=}---")
+redshifts = {
+    "redshift_True" : True,
+    "redshift_False" : False
+}
+
+do_compile = {
+    "compile_True" : True,
+    "compile_False" : False
+}
+
+@pytest.mark.parametrize("src_name", ["generic", "list_literal"])
+@pytest.mark.parametrize("redshift_key", ["redshift_True", "redshift_False"])
+@pytest.mark.parametrize("do_compile_key", ["compile_False", "compile_True"])
+async def test_list_j(redshift_key, src_name, do_compile_key):
+    print(f"\n---Running pipeline with {redshift_key=}---")
 
     # Write the source selection to a file
-    write_src(LIST_SRC) # CHANGE ME TO CHANGE SOURCE
+    src = sources[src_name]
+    write_src(src) # CHANGE ME TO CHANGE SOURCE
     args = Arguments(
-        filename = SRC_FILE,
-        redshift = redshift
+        filename = SRC_FILE_PATH,
+        redshift = redshifts[redshift_key]
     )
     print("Wrote src to file") 
 
@@ -90,6 +109,32 @@ async def test_list_j(redshift):
         ... # TODO What can we assert here?
     else:
         ... # TODO What can we assert here?
+
+    if not do_compile[do_compile_key]:
+        return
+
+    # Write the C files
+    ### This is straight from cli.inner_main
+    config = BuildConfig(
+        target=args.target,
+        kind=args.output_kind,
+        build_type="release" if args.release_mode else "debug",
+    )
+
+    cwd = py.path.local(".")
+    build_dir = srcdir / "build"
+    build_dir.mkdir(exist_ok=True, parents=True)
+    build_dir =  py.path.local(str(build_dir))
+    dump_c = args.cwrite and args.cdump
+    srcdir = args.filename.parent
+    backend = CBackend(vm, modname, config, build_dir, dump_c=False)
+
+    backend.cwrite()
+    backend.write_build_script()
+
+    outfile = backend.build()
+    ... # TODO What can we assert here?
     
+
     print("\n\n")
     
