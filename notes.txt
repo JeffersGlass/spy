@@ -4,4 +4,5 @@ Right now _list.spy::_make_empty_list creates a list with a 'f64' type as a plac
 We need either an Any type or a TypeNotSet type that is compatible with all typechecking, like convop.w_CONVERT and w_CONVERT_maybe. In fact the subclass check of w_CONVERT_maybe seems promising - maybe we create an Any type and declare all other types to be subclasses of it? Or maybe just use Object type?
 Once that's in place, we need all operations which add types to a list to check if they're empty and if so regenerate a new list with the appropriate type
     And all opeations which remove elements should revert the list to the Any type
+
     
