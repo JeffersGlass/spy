@@ -309,4 +309,9 @@ class ImportAnalyzer:
         self.deps[self.cur_modname].append(modname)
         self.queue.append(modname)
 
+    def visit_List(self, _list: ast.List) -> None:
+        assert self.cur_modname is not None
+        self.deps[self.cur_modname].append("_list")
+        self.queue.append("_list")
+
     # ===========================================================

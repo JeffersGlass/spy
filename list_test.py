@@ -1,4 +1,4 @@
-#!/usr/bin/env -S uv run pytest --asyncio-mode auto -k test_list_j
+#!/usr/bin/env -S uv run pytest --asyncio-mode auto -k test_list_j -v
 # /// script
 # requires-python = ">=3.12"
 # dependencies = ["pytest-asyncio"]
@@ -71,6 +71,13 @@ def main() -> None:
 def main() -> None:
     r = (1, 2, 3)
     print(r)
+    """,
+
+    "import_list": """\
+#import_list
+from _list import List
+def main() -> None:
+    lst = List[int]()
     """
 
 }
@@ -137,7 +144,9 @@ async def test_list_j(src_name, mode, xfail_selected_params):
     importer.import_all()
     #debug(f"After import_all(), vm.modules_w={shorten(str(vm.modules_w), 120)}")
     # We could use the above flag here to know whether we need to import the _list module?
-    debug(f"After import_all(), vm.modules_w={vm.modules_w=}")
+    debug(f"After import_all(), vm.modules_w=")
+    for m in vm.modules_w:
+        debug(f"\t{m}")
     if 'list_test_src' in vm.modules_w:
         debug(f"{vm.modules_w['list_test_src']=}")
     orig_mod = importer.getmod(modname) # Peek at the module we wanted to run
@@ -182,7 +191,7 @@ async def test_list_j(src_name, mode, xfail_selected_params):
     
 if __name__ == "__main__":
     # For manual running, adjust these parameters:
-    src_name ='tuple_literal'
-    mode='compile'
+    src_name = 'list_literal'
+    mode='redshift_and_run'
 
     asyncio.run(test_list_j(src_name=src_name, mode=mode, xfail_selected_params=None))
