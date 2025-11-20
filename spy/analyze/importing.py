@@ -1,4 +1,5 @@
 from collections import deque
+from textwrap import shorten
 from typing import TYPE_CHECKING, Optional, Union
 
 import py.path
@@ -99,12 +100,16 @@ class ImportAnalyzer:
     def parse_all(self) -> None:
         while self.queue:
             modname = self.queue.popleft()
+            print(f"parse_all(): Looking into {modname}")
+            print(f"  remaining mods are {self.queue}")
 
             if modname in self.mods:
+                print(f"We are already visiting {modname}, passing")
                 # we are already visiting this module, nothing to do
                 pass
 
             elif modname in self.vm.modules_w:
+                print(f"{modname} is already fully imported, passing")
                 # the module is already fully imported, record it
                 w_mod = self.vm.modules_w[modname]
                 self.mods[modname] = w_mod
@@ -112,8 +117,12 @@ class ImportAnalyzer:
             elif f := self.vm.find_file_on_path(modname):
                 # new module to visit: parse it and recursively visit it. This
                 # might append more mods to self.queue.
+                print(
+                    f"Module {modname} not already imported but file {f} is on path, parsing now"
+                )
                 parser = Parser.from_filename(str(f))
                 mod = parser.parse()
+                print(f"Parsed mod {modname}, which will be of type {type(mod)}")
                 self.mods[modname] = mod
 
                 # Initialize the dependency list for this module
@@ -167,17 +176,24 @@ class ImportAnalyzer:
     def import_all(self) -> None:
         assert self.mods, "call .parse_all() first"
         import_list = self.get_import_list()
+        print(f"ImportAnalyzer.import_all is importing {import_list}")
         for modname in import_list:
             mod = self.mods[modname]
             if isinstance(mod, ast.Module):
                 self.import_one(modname, mod)
+            else:
+                print(
+                    f"In import_all, mods['{modname}'] is not an ast.Module object, it is a {type(mod)}"
+                )
 
     def import_one(self, modname: str, mod: ast.Module) -> None:
+        print(f"calling import_one for {modname} : {shorten(str(mod), 120)}")
         scopes = self.analyze_scopes(modname)
         symtable = scopes.by_module()
         fqn = FQN(modname)
         modframe = ModFrame(self.vm, fqn, symtable, mod)
         w_mod = modframe.run()
+        print(f"w_mod was {w_mod}")
         self.vm.modules_w[modname] = w_mod
 
     def pp(self) -> None:
@@ -300,6 +316,7 @@ class ImportAnalyzer:
     # visitor pattern to recurively find all "import" statements
 
     def visit(self, mod: ast.Module) -> None:
+        self.queue.extend(mod.builtins_to_import)
         mod.visit("visit", self)
 
     def visit_Import(self, imp: ast.Import) -> None:
@@ -309,9 +326,9 @@ class ImportAnalyzer:
         self.deps[self.cur_modname].append(modname)
         self.queue.append(modname)
 
-    def visit_List(self, _list: ast.List) -> None:
-        assert self.cur_modname is not None
-        self.deps[self.cur_modname].append("_list")
-        self.queue.append("_list")
+    # def visit_List(self, _list: ast.List) -> None:
+    #     assert self.cur_modname is not None
+    #     self.deps[self.cur_modname].append("_list")
+    #     self.queue.append("_list")
 
     # ===========================================================

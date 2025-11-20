@@ -141,6 +141,7 @@ class Module(Node):
     filename: str
     docstring: Optional[str]
     decls: list["Decl"]
+    builtins_to_import: list[str]
 
     def get_funcdef(self, name: str) -> "FuncDef":
         """

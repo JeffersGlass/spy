@@ -1,4 +1,5 @@
 import ast as py_ast
+from itertools import chain
 from types import NoneType
 from typing import NoReturn, Optional
 
@@ -49,11 +50,13 @@ class Parser:
     src: str
     filename: str
     for_loop_seq: int  # counter for for loops within the current function
+    current_module: Optional[spy.ast.Module]
 
     def __init__(self, src: str, filename: str) -> None:
         self.src = src
         self.filename = filename
         self.for_loop_seq = 0
+        self.current_module = None
 
     @classmethod
     def from_filename(cls, filename: str) -> "Parser":
@@ -120,8 +123,13 @@ class Parser:
         docstring, py_body = self.get_docstring_maybe(py_mod.body)
 
         mod = spy.ast.Module(
-            loc=loc, filename=self.filename, decls=[], docstring=docstring
+            loc=loc,
+            filename=self.filename,
+            decls=[],
+            docstring=docstring,
+            builtins_to_import=[],
         )
+        self.current_module = mod
 
         for py_stmt in py_body:
             if isinstance(py_stmt, py_ast.FunctionDef):
@@ -152,6 +160,29 @@ class Parser:
                     "only function and variable definitions are allowed at global scope"
                 )
                 self.error(msg, "this is not allowed here", py_stmt.loc)
+
+        # make sure required 'builtins' are imported
+        all_imports: list["Import"] = [
+            decl
+            for decl in self.current_module.decls
+            if isinstance(decl, spy.ast.Import)
+        ]
+
+        need_to_import_maybe: str
+        for need_to_import_maybe in self.current_module.builtins_to_import:
+            if any(imp.ref.modname == need_to_import_maybe for imp in all_imports):
+                # module is already imported
+                continue
+            self.current_module.decls.append(
+                spy.ast.Import(
+                    Loc.fake(),
+                    loc_asname=Loc.fake(),
+                    ref=ImportRef(modname=need_to_import_maybe, attr=None),
+                    asname=need_to_import_maybe,
+                )
+            )
+
+        self.current_module = None
         return mod
 
     def from_py_stmt_FunctionDef(
@@ -617,9 +648,40 @@ class Parser:
         attr = spy.ast.StrConst(py_node.loc, py_node.attr)
         return spy.ast.GetAttr(py_node.loc, value, attr)
 
-    def from_py_expr_List(self, py_node: py_ast.List) -> spy.ast.List:
-        items = [self.from_py_expr(py_item) for py_item in py_node.elts]
-        return spy.ast.List(py_node.loc, items)
+    def from_py_expr_List(self, py_node: py_ast.List) -> spy.ast.Call:
+        ...  # Replace List expressions with calls to the list() builtin
+        if self.current_module:
+            if not "_list" in self.current_module.builtins_to_import:
+                self.current_module.builtins_to_import.append("_list")
+
+        call_node = py_ast.Call(
+            func = py_ast.Attribte(
+                value = py_ast.Name(
+                    id = "_list"
+                )
+            ),
+            args = py_node.elts
+        )
+
+        # for node in call_node.walk():
+        #     if not node.loc:
+        #         node._loc = py_node.loc
+
+        name_node = py_ast.Name(id="_list")
+        name_node._loc = py_node.loc
+
+        attr_node = py_ast.Attribute(value=name_node, attr="List")
+        attr_node._loc = py_node.loc
+
+        args = py_node.elts
+        call_node = py_ast.Call(func=attr_node, args=args)
+        call_node._loc = py_node.loc
+
+        return self.from_py_expr(call_node)
+
+        # Original code
+        # items = [self.from_py_expr(py_item) for py_item in py_node.elts]
+        # return spy.ast.List(py_node.loc, items)
 
     def from_py_expr_Tuple(self, py_node: py_ast.Tuple) -> spy.ast.Tuple:
         items = [self.from_py_expr(py_item) for py_item in py_node.elts]
