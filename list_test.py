@@ -139,29 +139,28 @@ async def test_list_j(src_name, mode, xfail_selected_params):
     debug(f"After parse_all() importer.mods={importer.mods}")
     # TODO What can we assert here?
 
-    if src_name  in ("list_literal", "import_list"):
-        assert '_list' in importer.mods
+    # Anywhere we have a list literal or list import we should end up with the _list.spy
+    # module identified as a dependency
+    assert ("list" in src_name) == ('_list' in importer.mods)
 
 
     # Import all modules found earlier. Also does analyze_scopes
     importer.import_all()
     #debug(f"After import_all(), vm.modules_w={shorten(str(vm.modules_w), 120)}")
     # We could use the above flag here to know whether we need to import the _list module?
-    debug(f"After import_all(), vm.modules_w=")
-    for m in vm.modules_w:
-        debug(f"\t{m}")
-    if 'list_test_src' in vm.modules_w:
-        debug(f"{vm.modules_w['list_test_src']=}")
+    debug(f"After import_all(), {vm.modules_w=}")
     orig_mod = importer.getmod(modname) # Peek at the module we wanted to run
     w_mod = vm.modules_w[modname]
     debug(f"{w_mod=}")
     # TODO What can we assert here?
-    
+
+    # Anywhere we have a list literal or list import we should end up with the _list.spy
+    # module identified imported
+    assert ("list" in src_name) == ('_list' in importer.vm.modules_w)
 
     vm.redshift(error_mode="eager")
     ... # TODO What can we assert here?
 
-    
     # Run the Module
     if not args.compile:
         debug("--- Calling spy_main without compiling ---")
