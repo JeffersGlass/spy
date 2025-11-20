@@ -139,6 +139,9 @@ async def test_list_j(src_name, mode, xfail_selected_params):
     debug(f"After parse_all() importer.mods={importer.mods}")
     # TODO What can we assert here?
 
+    if src_name  in ("list_literal", "import_list"):
+        assert '_list' in importer.mods
+
 
     # Import all modules found earlier. Also does analyze_scopes
     importer.import_all()
