@@ -13,10 +13,6 @@ DEBUG = True
 import sys
 IN_PYTEST = 'pytest' in sys.modules
 
-# For manual running, adjust these parameters:
-src_name ='list_literal'
-mode='compile'
-
 
 import asyncio
 from pathlib import Path
@@ -63,6 +59,20 @@ def main() -> None:
     print(p)
 """,
 
+    "list_mul": """\
+#list
+def main() -> None:
+    q = [1,2,3] * 2
+    print(q)
+""",
+
+    "tuple_literal": """\
+#tuple
+def main() -> None:
+    r = (1, 2, 3)
+    print(r)
+    """
+
 }
 
 @pytest.fixture
@@ -71,14 +81,16 @@ def xfail_selected_params(request):
     src_name = request.getfixturevalue('src_name')
     mode = request.getfixturevalue('mode')
 
-    allowed_failures = [
-        ("list_literal", "compile"),
-        ("list_add", "compile")
-    ]
+    allowed_failures = {
+        ("list_literal", "compile"): "Cannot compile builtin-lists",
+        ("list_add", "compile"): "Cannot compile builtin-lists",
+        ("list_mul", "compile"): "Cannot compile builtin-lists",
+        ("list_mul", "redshift_and_run"): "No support for list.__mul__ in vm.list",
+    }
     if (src_name, mode) in allowed_failures:
-        request.node.add_marker(pytest.mark.xfail(reason='TODO'))
+        request.node.add_marker(pytest.mark.xfail(reason=allowed_failures[(src_name, mode)]))
 
-@pytest.mark.parametrize("src_name", ["generic", "list_literal", "list_add"])
+@pytest.mark.parametrize("src_name", ["generic", "list_literal", "list_add", "list_mul", "tuple_literal"])
 @pytest.mark.parametrize("mode", ["compile", "redshift_and_run"])
 async def test_list_j(src_name, mode, xfail_selected_params):
     # Write the source selection to a file
@@ -102,10 +114,10 @@ async def test_list_j(src_name, mode, xfail_selected_params):
 
 
     # Create an ImportAnalyzer tied to the vm and associated with the module given
-    modname = args.filename.stem        # These lines are critical or we can't analyze imports later
-    assert modname == 'list_test_src'   #
-    srcdir = args.filename.parent       #
-    vm.path.append(str(srcdir)) 
+    modname = args.filename.stem        # | These lines are critical or we can't analyze imports later
+    assert modname == 'list_test_src'   # |
+    srcdir = args.filename.parent       # |
+    vm.path.append(str(srcdir))         # |
     importer = ImportAnalyzer(vm, modname)
     debug("ImportAnalyzer created") 
     # TODO What can we assert here?
@@ -116,13 +128,16 @@ async def test_list_j(src_name, mode, xfail_selected_params):
     # we parse the imports. We can detect any List nodes at this stage
     importer.parse_all()
     assert importer.mods
-    debug(f"After parse_all() importer.mods={shorten(str(importer.mods), 120)}")
+    #debug(f"After parse_all() importer.mods={shorten(str(importer.mods), 120)}")
+    debug(f"After parse_all() importer.mods={importer.mods}")
     # TODO What can we assert here?
 
 
     # Import all modules found earlier. Also does analyze_scopes
     importer.import_all()
-    debug(f"After import_all(), vm.modules_w={shorten(str(vm.modules_w), 120)}")
+    #debug(f"After import_all(), vm.modules_w={shorten(str(vm.modules_w), 120)}")
+    # We could use the above flag here to know whether we need to import the _list module?
+    debug(f"After import_all(), vm.modules_w={vm.modules_w=}")
     if 'list_test_src' in vm.modules_w:
         debug(f"{vm.modules_w['list_test_src']=}")
     orig_mod = importer.getmod(modname) # Peek at the module we wanted to run
@@ -166,5 +181,8 @@ async def test_list_j(src_name, mode, xfail_selected_params):
     debug("\n\n")
     
 if __name__ == "__main__":
-    #asyncio.run(test_list_j(src_name='generic', mode='redshift_and_run'))
+    # For manual running, adjust these parameters:
+    src_name ='tuple_literal'
+    mode='compile'
+
     asyncio.run(test_list_j(src_name=src_name, mode=mode, xfail_selected_params=None))
