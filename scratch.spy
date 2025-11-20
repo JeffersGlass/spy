@@ -1,0 +1,11 @@
+
+def main() -> None:
+    l = []
+    l.append(None)
+    return
+    l.append(1)
+    print(l)
+    print(l[0])
+    l.append(2)
+    print(l[1])
+    print(l)

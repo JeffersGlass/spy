@@ -213,9 +213,9 @@ class ScopeAnalyzer:
 
     def declare_Import(self, imp: ast.Import) -> None:
         w_obj = self.vm.lookup_ImportRef(imp.ref)
-        print(
-            f"Tried to look up import_ref '{imp.ref.modname}{'.' + str(imp.ref.attr) if imp.ref.attr else ''}' - Result was {w_obj}"
-        )
+        #print(
+        #    f"Tried to look up import_ref '{imp.ref.modname}{'.' + str(imp.ref.attr) if imp.ref.attr else ''}' - Result was {w_obj}"
+        #)
         if w_obj is not None:
             self.define_name(
                 imp.asname,

@@ -6,7 +6,14 @@ A generic dynamic array implementation similar to Python's list.
 
 from unsafe import gc_alloc, ptr
 from operator import OpSpec
+from types import NoneType
 
+# TODO make this a singleton or some other kind of type
+NULL_TYPE = f64
+
+@blue
+def _make_null_list():
+    return List[NULL_TYPE]
 
 @blue.generic
 def List(T):
@@ -15,6 +22,7 @@ def List(T):
         length: i32
         capacity: i32
         items: ptr[T]
+        _type: T
 
     @struct
     class list_iterator:
@@ -42,6 +50,8 @@ def List(T):
             return _ListImpl.__make__(data)
 
         def append(self, item: T) -> None:
+            if ll.length == 0:
+                return List[T].append(item)
             ll = self.__ll__
             if ll.length >= ll.capacity:
                 old_capacity = ll.capacity

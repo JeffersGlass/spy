@@ -172,6 +172,7 @@ class AbstractFrame:
         if varname is None:
             return None  # no typecheck needed
         w_exp_T = self.locals[varname].w_T
+        print(f"About to type_convert {wam} to {w_exp_T}")
         try:
             w_typeconv = CONVERT_maybe(self.vm, w_exp_T, wam)
         except SPyError as err:

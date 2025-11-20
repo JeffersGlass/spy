@@ -163,19 +163,19 @@ class SPyVM:
         # the only vm.path entry. Eventually we will need a proper import
         # mechanism and support for packages
         assert self.path, "vm.path not set"
-        print(f"find_file_on_path. path is {self.path}. modname is {modname}")
+        #print(f"find_file_on_path. path is {self.path}. modname is {modname}")
         for d in self.path:
             # XXX write test for this
             f = py.path.local(d).join(f"{modname}.spy")
-            print(f"Looking for {f} in {d}")
+            #print(f"Looking for {f} in {d}")
             if f.exists():
-                print(f"Found {f}!")
+                #print(f"Found {f}!")
                 return f
-            print(f"{f} not found")
+            #print(f"{f} not found")
             if allow_py_files:
                 py_f = f.new(ext=".py")
                 if py_f.exists():
-                    print(f"Found py file: {py_f}")
+                    #print(f"Found py file: {py_f}")
                     return py_f
 
         # XXX maybe THIS is the right place where to raise SPyImportError?
@@ -268,9 +268,9 @@ class SPyVM:
         assert False, "unreachable"
 
     def lookup_ImportRef(self, impref: ImportRef) -> Optional[W_Object]:
-        print(
-            f"lookup_Importref: for {impref}; modules are [{', '.join(self.modules_w.keys())}]"
-        )
+        #print(
+        #    f"lookup_Importref: for {impref}; modules are [{', '.join(self.modules_w.keys())}]"
+        #)
         w_mod = self.modules_w.get(impref.modname)
         if impref.attr is None:
             return w_mod

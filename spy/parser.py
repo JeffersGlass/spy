@@ -650,38 +650,47 @@ class Parser:
 
     def from_py_expr_List(self, py_node: py_ast.List) -> spy.ast.Call:
         ...  # Replace List expressions with calls to the list() builtin
+        
+        # Marker to import the _list module if needed
         if self.current_module:
             if not "_list" in self.current_module.builtins_to_import:
                 self.current_module.builtins_to_import.append("_list")
 
-        call_node = py_ast.Call(
-            func = py_ast.Attribte(
-                value = py_ast.Name(
-                    id = "_list"
+        if not py_node.elts: #List no elements; start a new list with null typing
+            null_type = py_ast.Attribute(
+                    value = py_ast.Name(
+                        id = "_list"
+                    ),
+                    attr = "NULL_TYPE"
                 )
-            ),
-            args = py_node.elts
-        )
 
-        # for node in call_node.walk():
-        #     if not node.loc:
-        #         node._loc = py_node.loc
+            # Create a new call to _list._make_null_list
+            call_node = py_ast.Call(
+                func = py_ast.Call(
+                    func = py_ast.Attribute(
+                        value = py_ast.Name(
+                            id = "_list"
+                        ),
+                        attr="_make_null_list"
+                    ),
+                    #args = [py_ast.Name(id=py_node.elts[0].value.__class__.__name__),]
+                    args = []
+                ),
+                args = []
+            )
 
-        name_node = py_ast.Name(id="_list")
-        name_node._loc = py_node.loc
+            # Make sure new nodes have valid locations
+            for node in py_ast.walk(call_node):
+                if not node._loc:
+                    node._loc = py_node.loc
 
-        attr_node = py_ast.Attribute(value=name_node, attr="List")
-        attr_node._loc = py_node.loc
+            return self.from_py_expr(call_node)
 
-        args = py_node.elts
-        call_node = py_ast.Call(func=attr_node, args=args)
-        call_node._loc = py_node.loc
+        else: #[1,2,3]
+            ...
+            self.unsupported(py_node, "[lists, literal, with, elements]")
 
-        return self.from_py_expr(call_node)
 
-        # Original code
-        # items = [self.from_py_expr(py_item) for py_item in py_node.elts]
-        # return spy.ast.List(py_node.loc, items)
 
     def from_py_expr_Tuple(self, py_node: py_ast.Tuple) -> spy.ast.Tuple:
         items = [self.from_py_expr(py_item) for py_item in py_node.elts]
