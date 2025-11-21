@@ -1,5 +1,4 @@
 from collections import deque
-from textwrap import shorten
 from typing import TYPE_CHECKING, Optional, Union
 
 import py.path
