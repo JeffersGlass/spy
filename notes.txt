@@ -14,3 +14,6 @@ Once that's in place, we need all operations which add types to a list to check 
 typecheck_opspec ->
     get_w_conv ->
         convert_maybe (raises)
+----
+
+One term to remember is "Generalize", which is used in the tests and in the vm to refer to type broadening in the context of collections, as in 'Test_list::TestList.test_generalize_literal'

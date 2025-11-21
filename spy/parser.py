@@ -660,9 +660,9 @@ class Parser:
         # Gotta rethink a lot of this
         # Let's ignore the empty list case for now and assume our list literal has at least one element
         # The ultimate goal is to replace the list literal to a call to a new function in the same scope (so all variables/closures are captured)
-        #   which creates the list, appends the elements, and returns it
+        #       which creates the list, appends the elements, and returns it
         # We actually don't need different single and multiple element cases, since we'll be deducing a union type anyway... we can just bail early
-        #   in the single element case
+        #       in the single element case
 
         func_node = None
         make_list_func_name = f"make_list_{str(uuid1())[:8]}"
@@ -696,42 +696,28 @@ class Parser:
        
         else: #[1,2,3]
             # self.unsupported(py_node, "[lists, literal, with, elements]")
-            if len(py_node.elts) == 1:
-                print("Parsing new list with one element")
-                ...
-                # lmylist = [0] ===>
-                #  mylist = _list.List[STATIC_TYPE(0)].append(0)
 
-                call_node = py_ast.Call(
-                    func = py_ast.Subscript(
-                        value = py_ast.Attribute(
-                            value = py_ast.Name(id = "_list"),
-                            attr="List"
-                        ),
-                        slice = py_ast.Name(id = "i32")
+            # lmylist = [0] ===>
+            #  mylist = _list.List[STATIC_TYPE(0)].append(0)
+
+            list_type="i32" #Todo infer list type from element
+
+            call_node = py_ast.Call(
+                func = py_ast.Subscript(
+                    value = py_ast.Attribute(
+                        value = py_ast.Name(id = "_list"),
+                        attr="List"
                     ),
-                    args = []
-                )
+                    slice = py_ast.Name(id = list_type)
+                ),
+                args = []
+            )
 
-                func_node = py_ast.FunctionDef(
-                    name = make_list_func_name,
-                    args = py_ast.arguments(posonlyargs=[], args=[]),
-                    body = [call_node]
-                )            
-    
-            else:
-                # For more than one element, we'll need to deduce the static type?
-                self.unsupported(py_node, "list literals with more than one element")
-                
+            func_node = py_ast.FunctionDef(
+                name = make_list_func_name,
+                args = py_ast.arguments(posonlyargs=[], args=[]),
                 body = [call_node]
-                for el in py_node.elts[1:]:
-                    body.append()
-
-                func_node = py_ast.FunctionDef(
-                    identifier = make_list_func_name,
-                    args = [],
-                    body = body
-                )
+            )            
         
         # Make sure new nodes have valid locations
         for node in py_ast.walk(func_node):
