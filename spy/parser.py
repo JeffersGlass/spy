@@ -1,6 +1,7 @@
 import ast as py_ast
 from types import NoneType
 from typing import NoReturn, Optional
+from uuid import uuid1
 
 import spy.ast
 from spy.analyze.symtable import ImportRef
@@ -648,48 +649,96 @@ class Parser:
         return spy.ast.GetAttr(py_node.loc, value, attr)
 
     def from_py_expr_List(self, py_node: py_ast.List) -> spy.ast.Call:
-        ...  # Replace List expressions with calls to the list() builtin
+        ...  # Replace List expressions with calls to _list.List()
         
         # Marker to import the _list module if needed
         if self.current_module:
             if not "_list" in self.current_module.builtins_to_import:
                 self.current_module.builtins_to_import.append("_list")
 
-        if not py_node.elts: #List no elements; start a new list with null typing
-            null_type = py_ast.Attribute(
-                    value = py_ast.Name(
-                        id = "_list"
-                    ),
-                    attr = "NULL_TYPE"
-                )
+        ## TODO TODO TODO TODO 
+        # Gotta rethink a lot of this
+        # Let's ignore the empty list case for now and assume our list literal has at least one element
+        # The ultimate goal is to replace the list literal to a call to a new function in the same scope (so all variables/closures are captured)
+        #   which creates the list, appends the elements, and returns it
+        # We actually don't need different single and multiple element cases, since we'll be deducing a union type anyway... we can just bail early
+        #   in the single element case
 
-            # Create a new call to _list._make_null_list
-            call_node = py_ast.Call(
-                func = py_ast.Call(
-                    func = py_ast.Attribute(
+        func_node = None
+        make_list_func_name = f"make_list_{str(uuid1())[:8]}"
+
+        if not py_node.elts: #List no elements; start a new list with null typing
+            self.unsupported(py_node, "creating empty list with [] syntax")
+
+            def _implementation():
+
+                null_type = py_ast.Attribute(
                         value = py_ast.Name(
                             id = "_list"
                         ),
-                        attr="_make_null_list"
+                        attr = "NULL_TYPE"
+                    )
+
+                # Create a new call to _list._make_null_list
+                call_node = py_ast.Call(
+                    func = py_ast.Call(
+                        func = py_ast.Attribute(
+                            value = py_ast.Name(
+                                id = "_list"
+                            ),
+                            attr="_make_null_list"
+                        ),
+                        #args = [py_ast.Name(id=py_node.elts[0].value.__class__.__name__),]
+                        args = []
                     ),
-                    #args = [py_ast.Name(id=py_node.elts[0].value.__class__.__name__),]
                     args = []
-                ),
-                args = []
-            )
-
-            # Make sure new nodes have valid locations
-            for node in py_ast.walk(call_node):
-                if not node._loc:
-                    node._loc = py_node.loc
-
-            return self.from_py_expr(call_node)
-
+                )
+       
         else: #[1,2,3]
-            ...
-            self.unsupported(py_node, "[lists, literal, with, elements]")
+            # self.unsupported(py_node, "[lists, literal, with, elements]")
+            if len(py_node.elts) == 1:
+                print("Parsing new list with one element")
+                ...
+                # lmylist = [0] ===>
+                #  mylist = _list.List[STATIC_TYPE(0)].append(0)
 
+                call_node = py_ast.Call(
+                    func = py_ast.Subscript(
+                        value = py_ast.Attribute(
+                            value = py_ast.Name(id = "_list"),
+                            attr="List"
+                        ),
+                        slice = py_ast.Name(id = "i32")
+                    ),
+                    args = []
+                )
 
+                func_node = py_ast.FunctionDef(
+                    name = make_list_func_name,
+                    args = py_ast.arguments(posonlyargs=[], args=[]),
+                    body = [call_node]
+                )            
+    
+            else:
+                # For more than one element, we'll need to deduce the static type?
+                self.unsupported(py_node, "list literals with more than one element")
+                
+                body = [call_node]
+                for el in py_node.elts[1:]:
+                    body.append()
+
+                func_node = py_ast.FunctionDef(
+                    identifier = make_list_func_name,
+                    args = [],
+                    body = body
+                )
+        
+        # Make sure new nodes have valid locations
+        for node in py_ast.walk(func_node):
+            if not node._loc:
+                node._loc = py_node.loc
+
+        return self.from_py_expr(call_node)
 
     def from_py_expr_Tuple(self, py_node: py_ast.Tuple) -> spy.ast.Tuple:
         items = [self.from_py_expr(py_item) for py_item in py_node.elts]
