@@ -1,5 +1,4 @@
 import ast as py_ast
-from itertools import chain
 from types import NoneType
 from typing import NoReturn, Optional
 
