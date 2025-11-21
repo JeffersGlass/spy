@@ -18,8 +18,6 @@ def w_GETITEM(vm: "SPyVM", wam_obj: W_MetaArg, *args_wam: W_MetaArg) -> W_OpImpl
     w_T = wam_obj.w_static_T
 
     newargs_wam = [wam_obj] + list(args_wam)
-    #print(f"In w_GETITEM for {wam_obj=} {f'with symbol {wam_obj.sym} ' if wam_obj.sym else '(no symbol)'} and {type(w_T)=}")
-    #if hasattr(w_T, "kind"): print(f" and {w_T.kind=}")
     if isinstance(w_T, W_FuncType) and w_T.kind == "generic":
         # special case: for generic W_Funcs, "[]" means "call"
         w_opspec = w_T.pyclass.op_CALL(vm, wam_obj, *args_wam)  # type: ignore
@@ -27,7 +25,7 @@ def w_GETITEM(vm: "SPyVM", wam_obj: W_MetaArg, *args_wam: W_MetaArg) -> W_OpImpl
         w_opspec = vm.fast_metacall(w_getitem, newargs_wam)
 
     return typecheck_opspec(
-        vm, w_opspec, newargs_wam, dispatch="single", errmsg="cannot do`{0}`[...]"
+        vm, w_opspec, newargs_wam, dispatch="single", errmsg="cannot do `{0}`[...]"
     )
 
 
