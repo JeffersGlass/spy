@@ -1,6 +1,7 @@
 import ast as py_ast
+from functools import wraps
 from types import NoneType
-from typing import NoReturn, Optional
+from typing import NoReturn, Optional, Callable
 from uuid import uuid1
 
 import spy.ast
@@ -31,6 +32,22 @@ def parse_special_decorator(py_expr: py_ast.expr) -> Optional[str]:
 
     return None
 
+def stmt_func(method: Callable):
+    @wraps(method)
+    def inner(self, py_stmt: py_ast.stmt):
+        self.stmt_stack.append(py_stmt)
+        assert hasattr(py_stmt, 'body'), f"{type(py_stmt)} {py_stmt} as no attribute 'body'"
+        result = method(self, py_stmt)
+        assert isinstance(result, spy.ast.Stmt)
+        if hasattr(py_stmt,"_extras_at_start"):
+            for ex in py_stmt._extras_at_start:
+                print(py_ast.dump(ex, indent=2))
+            result.body = [self.from_py_stmt(ex) for ex in py_stmt._extras_at_start] + result.body
+            print("\n---- RESULT ----")
+            result.pp()
+        self.stmt_stack.pop()
+        return result
+    return inner
 
 class Parser:
     """
@@ -57,12 +74,14 @@ class Parser:
         self.filename = filename
         self.for_loop_seq = 0
         self.current_module = None
+        self.stmt_stack = [] # Tracks the current statement we're in so ????
 
     @classmethod
     def from_filename(cls, filename: str) -> "Parser":
         with open(filename) as f:
             src = f.read()
         return Parser(src, filename)
+
 
     def parse(self) -> spy.ast.Module:
         py_mod = magic_py_parse(self.src, self.filename)
@@ -185,6 +204,7 @@ class Parser:
         self.current_module = None
         return mod
 
+    @stmt_func
     def from_py_stmt_FunctionDef(
         self, py_funcdef: py_ast.FunctionDef
     ) -> spy.ast.FuncDef:
@@ -297,6 +317,7 @@ class Parser:
             kind=kind,
         )
 
+    @stmt_func
     def from_py_stmt_ClassDef(self, py_classdef: py_ast.ClassDef) -> spy.ast.ClassDef:
         if py_classdef.bases:
             self.error(
@@ -467,7 +488,7 @@ class Parser:
             kind=varkind,
             name=spy.ast.StrConst(py_node.target.loc, py_node.target.id),
             type=self.from_py_expr(py_node.annotation),
-            value=value,
+            value=value
         )
 
         return vardef
@@ -542,14 +563,16 @@ class Parser:
         else:
             self.unsupported(py_target, "assign to complex expressions")
 
+    @stmt_func
     def from_py_stmt_If(self, py_node: py_ast.If) -> spy.ast.If:
         return spy.ast.If(
             loc=py_node.loc,
             test=self.from_py_expr(py_node.test),
-            then_body=self.from_py_body(py_node.body),
-            else_body=self.from_py_body(py_node.orelse),
+            body=self.from_py_body(py_node.body),
+            orelse=self.from_py_body(py_node.orelse),
         )
 
+    @stmt_func
     def from_py_stmt_While(self, py_node: py_ast.While) -> spy.ast.While:
         if py_node.orelse:
             self.unsupported(py_node, "`else` clause in `while` loops")
@@ -559,6 +582,7 @@ class Parser:
             body=self.from_py_body(py_node.body),
         )
 
+    @stmt_func
     def from_py_stmt_For(self, py_node: py_ast.For) -> spy.ast.For:
         if py_node.orelse:
             # ideally, we would like to point to the 'else:' line, but we
@@ -582,8 +606,9 @@ class Parser:
             target=spy.ast.StrConst(py_node.target.loc, py_node.target.id),
             iter=self.from_py_expr(py_node.iter),
             body=self.from_py_body(py_node.body),
+   
         )
-
+    
     def from_py_stmt_Raise(self, py_node: py_ast.Raise) -> spy.ast.Raise:
         if py_node.cause:
             self.unsupported(py_node, "raise ... from ...")
@@ -593,7 +618,7 @@ class Parser:
 
         exc = self.from_py_expr(py_node.exc)
         return spy.ast.Raise(loc=py_node.loc, exc=exc)
-
+    
     def from_py_stmt_Assert(self, py_node: py_ast.Assert) -> spy.ast.Assert:
         test = self.from_py_expr(py_node.test)
         msg = self.from_py_expr(py_node.msg) if py_node.msg else None
@@ -648,8 +673,9 @@ class Parser:
         attr = spy.ast.StrConst(py_node.loc, py_node.attr)
         return spy.ast.GetAttr(py_node.loc, value, attr)
 
-    def from_py_expr_List(self, py_node: py_ast.List) -> spy.ast.Call:
-        ...  # Replace List expressions with calls to _list.List()
+    def from_py_expr_List(self, py_node: py_ast.List) -> spy.ast.Expr:
+        if not self.stmt_stack:
+            self.unsupported(py_node, "List literals are not supported at the global scope")
         
         # Marker to import the _list module if needed
         if self.current_module:
@@ -664,44 +690,21 @@ class Parser:
         # We actually don't need different single and multiple element cases, since we'll be deducing a union type anyway... we can just bail early
         #       in the single element case
 
-        func_node = None
-        make_list_func_name = f"make_list_{str(uuid1())[:8]}"
+        func_def_node = None
+        list_var_name = '_list_' + str(uuid1())[:8]
+        make_list_func_name = f"_make{list_var_name}"
 
         if not py_node.elts: #List no elements; start a new list with null typing
             self.unsupported(py_node, "creating empty list with [] syntax")
-
-            def _implementation():
-
-                null_type = py_ast.Attribute(
-                        value = py_ast.Name(
-                            id = "_list"
-                        ),
-                        attr = "NULL_TYPE"
-                    )
-
-                # Create a new call to _list._make_null_list
-                call_node = py_ast.Call(
-                    func = py_ast.Call(
-                        func = py_ast.Attribute(
-                            value = py_ast.Name(
-                                id = "_list"
-                            ),
-                            attr="_make_null_list"
-                        ),
-                        #args = [py_ast.Name(id=py_node.elts[0].value.__class__.__name__),]
-                        args = []
-                    ),
-                    args = []
-                )
        
         else: #[1,2,3]
             # self.unsupported(py_node, "[lists, literal, with, elements]")
 
-            # lmylist = [0] ===>
-            #  mylist = _list.List[STATIC_TYPE(0)].append(0)
+            list_type="i32" # TODO infer list type from element
 
-            list_type="i32" #Todo infer list type from element
-
+            # construct a new function definition for a function which calls _list.List[type]
+            # Then calls List.append() with each of the elements from the list literal
+            # Then returns the result list      
             call_node = py_ast.Call(
                 func = py_ast.Subscript(
                     value = py_ast.Attribute(
@@ -710,21 +713,59 @@ class Parser:
                     ),
                     slice = py_ast.Name(id = list_type)
                 ),
+                args = [] # empty call to new list
+            )
+
+            assign_node = py_ast.Assign(
+                targets = [
+                    py_ast.Name(id='_inner_list', spy_varkind='var')
+                ],
+                value = call_node,
+            )
+
+            append_nodes: list[py_ast.Expr] = [
+                py_ast.Expr(
+                    value = py_ast.Call(
+                        func = py_ast.Attribute(
+                            py_ast.Name(id='_inner_list'),
+                            attr='append'
+                        ),
+                        args = [elt]
+                    )
+                )
+                for elt in py_node.elts
+            ]
+
+            return_node = py_ast.Return(
+                value = py_ast.Name(id='_inner_list')
+            )
+
+            func_def_node = py_ast.FunctionDef(
+                name = make_list_func_name,
+                args = py_ast.arguments(posonlyargs=[], args=[]),
+                body = [assign_node, *append_nodes, return_node],
+                returns = py_ast.Name(id='i32')
+            )
+        
+            # Make sure new nodes have valid locations
+            for node in py_ast.walk(func_def_node):
+                if not node._loc:
+                    node._loc = py_node.loc
+
+            self.stmt_stack[-1]._extras_at_start = [func_def_node]
+
+            #In the original function, replace the list literal with a call to our new local function
+            local_call_node = py_ast.Call(
+                func=py_ast.Name(id=make_list_func_name),
                 args = []
             )
 
-            func_node = py_ast.FunctionDef(
-                name = make_list_func_name,
-                args = py_ast.arguments(posonlyargs=[], args=[]),
-                body = [call_node]
-            )            
-        
-        # Make sure new nodes have valid locations
-        for node in py_ast.walk(func_node):
-            if not node._loc:
-                node._loc = py_node.loc
+            for node in py_ast.walk(local_call_node):
+                if not node._loc:
+                    node._loc = py_node.loc
 
-        return self.from_py_expr(call_node)
+            return self.from_py_expr_Call(local_call_node)
+
 
     def from_py_expr_Tuple(self, py_node: py_ast.Tuple) -> spy.ast.Tuple:
         items = [self.from_py_expr(py_item) for py_item in py_node.elts]

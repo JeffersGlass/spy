@@ -249,8 +249,8 @@ class DopplerFrame(ASTFrame):
 
     def shift_stmt_If(self, if_node: ast.If) -> list[ast.Stmt]:
         newtest = self.eval_and_shift(if_node.test, varname="@if")
-        newthen = self.shift_body(if_node.then_body)
-        newelse = self.shift_body(if_node.else_body)
+        newthen = self.shift_body(if_node.body)
+        newelse = self.shift_body(if_node.orelse)
         return [if_node.replace(test=newtest, then_body=newthen, else_body=newelse)]
 
     def shift_stmt_While(self, while_node: ast.While) -> list[ast.Stmt]:

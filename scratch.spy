@@ -1,2 +1,3 @@
+import _list
 def main() -> None:
-    p = [1]
+    x = _list.List[i32]()

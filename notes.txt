@@ -17,3 +17,9 @@ typecheck_opspec ->
 ----
 
 One term to remember is "Generalize", which is used in the tests and in the vm to refer to type broadening in the context of collections, as in 'Test_list::TestList.test_generalize_literal'
+
+---- 11/24
+Need to pre-process the AST to handle list constants
+
+--- Useful Comments:
+spy/vm/primitive.py:240 : The <dynamic> type

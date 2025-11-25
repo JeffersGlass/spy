@@ -595,10 +595,10 @@ class AbstractFrame:
         wam_cond = self.eval_expr(if_node.test, varname="@if")
         assert isinstance(wam_cond.w_val, W_Bool)
         if self.vm.is_True(wam_cond.w_val):
-            for stmt in if_node.then_body:
+            for stmt in if_node.body:
                 self.exec_stmt(stmt)
         else:
-            for stmt in if_node.else_body:
+            for stmt in if_node.orelse:
                 self.exec_stmt(stmt)
 
     def exec_stmt_While(self, while_node: ast.While) -> None:

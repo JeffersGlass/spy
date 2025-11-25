@@ -508,12 +508,12 @@ class SetItem(Stmt):
 @astnode
 class If(Stmt):
     test: Expr
-    then_body: list[Stmt]
-    else_body: list[Stmt]
+    body: list[Stmt]
+    orelse: list[Stmt]
 
     @property
     def has_else(self) -> bool:
-        return len(self.else_body) > 0
+        return len(self.orelse) > 0
 
 
 @astnode

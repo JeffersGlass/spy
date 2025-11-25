@@ -93,6 +93,7 @@ class W_List(W_BaseList, Generic[T]):
     items_w: list[T]
 
     def __init__(self, w_listtype: W_ListType, items_w: list[W_Object]) -> None:
+        raise ValueError("I'm not gonna let you init a list")
         assert isinstance(w_listtype, W_ListType)
         self.w_listtype = w_listtype
         # XXX we should do a proper typecheck, but let's at least do a sanity check

@@ -179,13 +179,13 @@ class CFuncWriter:
         test = self.fmt_expr(if_node.test)
         self.tbc.wl(f"if ({test})" + "{")
         with self.tbc.indent():
-            for stmt in if_node.then_body:
+            for stmt in if_node.body:
                 self.emit_stmt(stmt)
         #
-        if if_node.else_body:
+        if if_node.orelse:
             self.tbc.wl("} else {")
             with self.tbc.indent():
-                for stmt in if_node.else_body:
+                for stmt in if_node.orelse:
                     self.emit_stmt(stmt)
         #
         self.tbc.wl("}")

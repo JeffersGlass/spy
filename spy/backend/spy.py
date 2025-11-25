@@ -298,12 +298,12 @@ class SPyBackend:
         test = self.fmt_expr(if_node.test)
         self.wl(f"if {test}:")
         with self.out.indent():
-            for stmt in if_node.then_body:
+            for stmt in if_node.body:
                 self.emit_stmt(stmt)
-        if if_node.else_body:
+        if if_node.orelse:
             self.wl("else:")
             with self.out.indent():
-                for stmt in if_node.else_body:
+                for stmt in if_node.orelse:
                     self.emit_stmt(stmt)
 
     def emit_stmt_Raise(self, raise_node: ast.Raise) -> None:
