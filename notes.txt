@@ -21,5 +21,9 @@ One term to remember is "Generalize", which is used in the tests and in the vm t
 ---- 11/24
 Need to pre-process the AST to handle list constants
 
+---- 11/25
+In Parser, having trouble identifying "_ListImpl" as the return type since it's defined within the generic function
+
 --- Useful Comments:
 spy/vm/primitive.py:240 : The <dynamic> type
+

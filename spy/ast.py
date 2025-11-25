@@ -10,6 +10,7 @@ from typing import (
     Type,
     dataclass_transform,
     no_type_check,
+    NamedTuple
 )
 
 from spy.analyze.symtable import Color, ImportRef, Symbol, VarKind
@@ -135,13 +136,16 @@ class Node:
             for node in self.get_children():
                 node.visit(prefix, visitor, *args)
 
+class BuiltinToImport(NamedTuple):
+    module: str
+    attr: str
 
 @astnode
 class Module(Node):
     filename: str
     docstring: Optional[str]
     decls: list["Decl"]
-    builtins_to_import: list[str]
+    builtins_to_import: list[BuiltinToImport]
 
     def get_funcdef(self, name: str) -> "FuncDef":
         """

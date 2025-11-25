@@ -300,7 +300,7 @@ class ImportAnalyzer:
     # visitor pattern to recurively find all "import" statements
 
     def visit(self, mod: ast.Module) -> None:
-        self.queue.extend(mod.builtins_to_import)
+        self.queue.extend([b.module for b in mod.builtins_to_import])
         mod.visit("visit", self)
 
     def visit_Import(self, imp: ast.Import) -> None:
@@ -308,6 +308,7 @@ class ImportAnalyzer:
         assert self.cur_modname is not None
         # Record the dependency relationship
         self.deps[self.cur_modname].append(modname)
+        print(modname)
         self.queue.append(modname)
 
     # ===========================================================

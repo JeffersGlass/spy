@@ -146,7 +146,7 @@ class Parser:
             filename=self.filename,
             decls=[],
             docstring=docstring,
-            builtins_to_import=[],
+            builtins_to_import =[],
         )
         self.current_module = mod
 
@@ -187,17 +187,17 @@ class Parser:
             if isinstance(decl, spy.ast.Import)
         ]
 
-        need_to_import_maybe: str
+        need_to_import_maybe: spy.ast.BuiltinToImport
         for need_to_import_maybe in self.current_module.builtins_to_import:
-            if any(imp.ref.modname == need_to_import_maybe for imp in all_imports):
+            if any(imp.ref.modname == need_to_import_maybe.module for imp in all_imports):
                 # module is already imported
                 continue
             self.current_module.decls.append(
                 spy.ast.Import(
                     Loc.fake(),
                     loc_asname=Loc.fake(),
-                    ref=ImportRef(modname=need_to_import_maybe, attr=None),
-                    asname=need_to_import_maybe,
+                    ref=ImportRef(modname=need_to_import_maybe.module, attr=need_to_import_maybe.attr),
+                    asname=(need_to_import_maybe.attr if need_to_import_maybe.attr else need_to_import_maybe.module),
                 )
             )
 
@@ -679,8 +679,8 @@ class Parser:
         
         # Marker to import the _list module if needed
         if self.current_module:
-            if not "_list" in self.current_module.builtins_to_import:
-                self.current_module.builtins_to_import.append("_list")
+            if not ("_list", "List") in self.current_module.builtins_to_import:
+                self.current_module.builtins_to_import.append(spy.ast.BuiltinToImport("_list", "List"))
 
         ## TODO TODO TODO TODO 
         # Gotta rethink a lot of this
@@ -707,9 +707,8 @@ class Parser:
             # Then returns the result list      
             call_node = py_ast.Call(
                 func = py_ast.Subscript(
-                    value = py_ast.Attribute(
-                        value = py_ast.Name(id = "_list"),
-                        attr="List"
+                    value = py_ast.Name(
+                        id="List"
                     ),
                     slice = py_ast.Name(id = list_type)
                 ),
@@ -740,11 +739,39 @@ class Parser:
                 value = py_ast.Name(id='_inner_list')
             )
 
+            #STATIC_TYPE(List[i32]()))
+            
+            return_type_node = py_ast.Call(
+                func=py_ast.Name(id="STATIC_TYPE"),
+                args = [
+                    py_ast.Call(
+                        func=py_ast.Subscript(
+                            value=py_ast.Name(id="List"),
+                            slice=py_ast.Name(id="i32")
+                        ),
+                        args = []
+                    )
+                ]
+            )
+
+            # return_type_node = py_ast.Attribute(
+            #         value= py_ast.Subscript(
+            #             value=py_ast.Name(id="List"),
+            #             slice=py_ast.Name(id="i32")
+            #         ),
+            #         attr="_ListImpl"
+            # )
+            
+            for node in py_ast.walk(return_type_node):
+                if not node._loc:
+                    node._loc = py_node.loc
+
             func_def_node = py_ast.FunctionDef(
                 name = make_list_func_name,
                 args = py_ast.arguments(posonlyargs=[], args=[]),
                 body = [assign_node, *append_nodes, return_node],
-                returns = py_ast.Name(id='i32')
+                #_list::List[i32]::_ListImpl
+                returns = return_type_node
             )
         
             # Make sure new nodes have valid locations

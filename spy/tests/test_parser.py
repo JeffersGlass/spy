@@ -857,12 +857,12 @@ class TestParser:
         expected = """
         If(
             test=Name(id='x'),
-            then_body=[
+            body=[
                 Return(
                     value=Constant(value=1),
                 ),
             ],
-            else_body=[
+            orelse=[
                 Return(
                     value=Constant(value=2),
                 ),
@@ -1449,10 +1449,10 @@ class TestParser:
                         left=Name(id='i'),
                         right=Constant(value=5),
                     ),
-                    then_body=[
+                    body=[
                         Break(),
                     ],
-                    else_body=[],
+                    orelse=[],
                 ),
             ],
         )
@@ -1484,10 +1484,10 @@ class TestParser:
                         left=Name(id='i'),
                         right=Constant(value=5),
                     ),
-                    then_body=[
+                    body=[
                         Continue(),
                     ],
-                    else_body=[],
+                    orelse=[],
                 ),
             ],
         )
