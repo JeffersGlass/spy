@@ -865,6 +865,43 @@ class AbstractFrame:
         w_val = outervars[sym.name].w_val
         assert w_val is not None
         w_T = self.vm.dynamic_type(w_val)
+        # Special-case: when we see the builtin `list` usage in a user module,
+        # auto-import stdlib._list and use its implementation instead.
+        # This avoids using the low-level `vm/list.py` implementation in user
+        # code: instead we prefer the user-visible stdlib implementation.
+        try:
+            from spy.vm.b import B
+        except Exception:
+            B = None
+        if (
+            B is not None
+            and w_val is getattr(B, "w_list", None)
+            and self.ns.modname != "stdlib._list"
+        ):
+            # Import the stdlib implementation and bind it to the builtin `list`.
+            try:
+                w_mod = self.vm.import_("stdlib._list")
+                # Prefer `List` exported symbol (capitalized), fallback to `list`.
+                if (w_new_val := w_mod.getattr_maybe("List")) is None:
+                    w_new_val = w_mod.getattr_maybe("list")
+                if w_new_val is not None:
+                    # Update module builtins and registry value so future lookups see
+                    # the stdlib version.
+                    bmod = self.vm.modules_w.get("builtins")
+                    if bmod is not None:
+                        bmod._dict_w["list"] = w_new_val
+                    try:
+                        setattr(B, "w_list", w_new_val)  # update registry attribute
+                    except Exception:
+                        pass
+                    # Update the current frame closure local variable.
+                    outervars[sym.name].w_val = w_new_val
+                    outervars[sym.name].w_T = self.vm.dynamic_type(w_new_val)
+                    w_val = w_new_val
+            except Exception:
+                # In case of any failure (missing stdlib, import error), just
+                # keep the old builtins version.
+                pass
         return W_MetaArg(self.vm, color, w_T, w_val, name.loc, sym=sym)
 
     def eval_expr_NameOuterCell(self, name: ast.NameOuterCell) -> W_MetaArg:
@@ -875,6 +912,36 @@ class AbstractFrame:
         w_val = w_cell.get()
         w_T = self.vm.dynamic_type(w_val)
         color: Color = "blue" if sym.varkind == "const" else "red"
+        # Special-case builtin `list`: auto-import stdlib implementation when used
+        # by a user module.
+        try:
+            from spy.vm.b import B
+        except Exception:
+            B = None
+        if (
+            B is not None
+            and w_val is getattr(B, "w_list", None)
+            and self.ns.modname != "stdlib._list"
+        ):
+            try:
+                w_mod = self.vm.import_("stdlib._list")
+                if (w_new_val := w_mod.getattr_maybe("List")) is None:
+                    w_new_val = w_mod.getattr_maybe("list")
+                if w_new_val is not None:
+                    # Update builtins module and the global cell
+                    bmod = self.vm.modules_w.get("builtins")
+                    if bmod is not None:
+                        bmod._dict_w["list"] = w_new_val
+                    try:
+                        setattr(B, "w_list", w_new_val)
+                    except Exception:
+                        pass
+                    # Update the global cell (so future reads use the new value)
+                    w_cell.set(w_new_val)
+                    w_val = w_new_val
+                    w_T = self.vm.dynamic_type(w_val)
+            except Exception:
+                pass
         return W_MetaArg(self.vm, color, w_T, w_val, name.loc, sym=sym)
 
     def eval_expr_AssignExpr(self, assignexpr: ast.AssignExpr) -> W_MetaArg:

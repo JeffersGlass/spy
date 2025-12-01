@@ -178,3 +178,14 @@ class TestBuiltins(CompilerTest):
         dm = mod.dir_math()
         assert "acos" in dm
         assert "pi" in dm
+
+    @no_C
+    def test_builtin_list_uses_stdlib(self):
+        src = """
+        def foo() -> int:
+            lst = list[int]()
+            lst.append(10)
+            return lst[0]
+        """
+        mod = self.compile(src)
+        assert mod.foo() == 10
