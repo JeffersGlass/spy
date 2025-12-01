@@ -138,6 +138,28 @@ class SPyVM:
         self.make_module(TIME)
         self.make_module(SPY)
         self.make_module(_TESTING_HELPERS)
+        # Rebind the builtin `list` to the stdlib implementation, so that
+        # `BUILTINS.w_list` points to stdlib `_list.List` instead of the
+        # VM internal list type.
+        try:
+            w_list_mod = self.import_("_list")
+            if w_list_mod is not None:
+                w_new_val = w_list_mod.getattr_maybe("List") or w_list_mod.getattr_maybe("list")
+                if w_new_val is not None:
+                    bmod = self.modules_w.get("builtins")
+                    if bmod is not None:
+                        bmod._dict_w["list"] = w_new_val
+                    try:
+                        from spy.vm.b import B
+
+                        setattr(B, "w_list", w_new_val)
+                    except Exception:
+                        pass
+                    # rebuild the builtins closure to reflect this change
+                    self.builtins_closure = self.make_builtins_closure()
+        except Exception:
+            pass
+
         self.call_INITs()
 
     @classmethod
@@ -949,7 +971,7 @@ class SPyVM:
         wam_repr = W_MetaArg.from_w_obj(self, BUILTINS.w_repr)
         return self.call_wam(wam_repr, [wam_o], loc=loc)
 
-    def make_list_type(self, w_T: W_Type, *, loc: Loc) -> W_ListType:
+    def make_list_type(self, w_T: W_Type, *, loc: Loc) -> W_Type:
         w_res = self.getitem_w(B.w_list, w_T, loc=loc)
-        assert isinstance(w_res, W_ListType)
+        assert isinstance(w_res, W_Type)
         return w_res

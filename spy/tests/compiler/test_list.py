@@ -19,8 +19,8 @@ class TestList(CompilerTest):
         """)
         w_foo = mod.foo.w_func
         w_list_i32 = self.vm.fast_call(w_foo, [])
-        assert isinstance(w_list_i32, W_ListType)
-        assert w_list_i32.fqn == FQN("builtins::list[i32]")
+        assert isinstance(w_list_i32, W_Type)
+        assert w_list_i32.fqn == FQN("_list::List[i32]")
 
     def test_generalize_literal(self):
         mod = self.compile("""
@@ -34,10 +34,10 @@ class TestList(CompilerTest):
         """)
         w_t1 = mod.foo(unwrap=False)
         assert isinstance(w_t1, W_Type)
-        assert w_t1.fqn == FQN("builtins::list[type]")
+        assert w_t1.fqn == FQN("_list::List[type]")
         w_t2 = mod.bar(unwrap=False)
         assert isinstance(w_t2, W_Type)
-        assert w_t2.fqn == FQN("builtins::list[object]")
+        assert w_t2.fqn == FQN("_list::List[object]")
 
     def test_literal(self):
         mod = self.compile("""

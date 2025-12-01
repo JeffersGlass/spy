@@ -6,6 +6,7 @@ from spy.vm.builtin import builtin_method
 from spy.vm.object import W_Object, W_Type
 from spy.vm.opspec import W_MetaArg, W_OpSpec
 from spy.vm.primitive import W_I32, W_Bool
+from spy.location import Loc
 from spy.vm.str import W_Str
 
 if TYPE_CHECKING:
@@ -249,9 +250,29 @@ W_StrList = Annotated[W_List[W_Str], w_str_list_type]
 W_MetaArgList = Annotated[W_List[W_MetaArg], w_metaarg_list_type]
 
 
-def make_str_list(items_w: list[W_Str]) -> W_StrList:
-    return W_List(w_str_list_type, items_w)  # type: ignore
+def make_str_list(vm: "SPyVM", items_w: list[W_Str]) -> W_StrList | W_Object:
+    # Dynamically compute the list type using current `B.w_list` mapping
+    w_listtype = vm.make_list_type(B.w_str, loc=Loc.here(-2))
+    if isinstance(w_listtype, W_ListType):
+        return W_List(w_str_list_type, items_w)  # keep returning internal type
+    else:
+        # instantiate stdlib list and append items
+        w_inst = vm.call_w(w_listtype, [])
+        for itm in items_w:
+            w_append = vm.dynamic_type(w_inst).lookup_func("append")
+            assert w_append is not None
+            vm.fast_call(w_append, [w_inst, itm])
+        return w_inst
 
 
-def make_metaarg_list(args_wam: list[W_MetaArg]) -> W_MetaArgList:
-    return W_List(w_metaarg_list_type, args_wam)  # type: ignore
+def make_metaarg_list(vm: "SPyVM", args_wam: list[W_MetaArg]) -> W_MetaArgList | W_Object:
+    w_listtype = vm.make_list_type(OP.w_MetaArg, loc=Loc.here(-2))
+    if isinstance(w_listtype, W_ListType):
+        return W_List(w_metaarg_list_type, args_wam)  # type: ignore
+    else:
+        w_inst = vm.call_w(w_listtype, [])
+        for itm in args_wam:
+            w_append = vm.dynamic_type(w_inst).lookup_func("append")
+            assert w_append is not None
+            vm.fast_call(w_append, [w_inst, itm.w_val])
+        return w_inst

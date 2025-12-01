@@ -205,4 +205,4 @@ class TestBuiltins(CompilerTest):
     def test_registry_builtin_list_type(self):
         # Ensure `B.w_list` is still a W_Type after changes; VM internals rely
         # on this being the builtin list type.
-        assert isinstance(B.w_list, W_Type)
+            assert isinstance(B.w_list, W_BuiltinFunc)

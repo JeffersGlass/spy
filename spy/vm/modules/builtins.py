@@ -211,7 +211,7 @@ def w_dir(vm: "SPyVM", wam_obj: W_MetaArg) -> W_OpSpec:
         names.update(new_names)
 
     names_w = [vm.wrap(name) for name in sorted(names)]
-    w_names = make_str_list(names_w)
+    w_names = make_str_list(vm, names_w)
     return W_OpSpec.const(w_names)
 
 

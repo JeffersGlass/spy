@@ -12,7 +12,7 @@ from spy.vm.b import B
 from spy.vm.cell import W_Cell
 from spy.vm.exc import W_TypeError
 from spy.vm.function import CLOSURE, FuncParam, LocalVar, W_ASTFunc, W_Func, W_FuncType
-from spy.vm.list import W_List
+from spy.vm.list import W_List, W_ListType
 from spy.vm.modules.operator import OP, OP_from_token, OP_unary_from_token
 from spy.vm.modules.operator.convop import CONVERT_maybe
 from spy.vm.modules.types import TYPES
@@ -1065,7 +1065,20 @@ class AbstractFrame:
             w_val = None
         else:
             items_w = [wam.w_val for wam in items_wam]
-            w_val = W_List(w_listtype, items_w)
+            # If the list type is our internal W_ListType, construct a W_List
+            # as before; otherwise, instantiate the stdlib list and append
+            # the items.
+            if isinstance(w_listtype, W_ListType):
+                w_val = W_List(w_listtype, items_w)
+            else:
+                # instantiate stdlib list. call type with no args.
+                w_val = self.vm.call_w(w_listtype, [], loc=op.loc)
+                # append each element
+                for itm in items_w:
+                    # look up append function on the type of the instance
+                    w_append = self.vm.dynamic_type(w_val).lookup_func("append")
+                    assert w_append is not None, "stdlib list doesn't have append"
+                    self.vm.fast_call(w_append, [w_val, itm])
         return W_MetaArg(self.vm, color, w_listtype, w_val, op.loc)
 
     def eval_expr_Tuple(self, op: ast.Tuple) -> W_MetaArg:
