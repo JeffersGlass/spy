@@ -1,7 +1,9 @@
 import pytest
 
 from spy.tests.support import CompilerTest, expect_errors, no_C, only_interp
+from spy.vm.b import B
 from spy.vm.builtin import builtin_method
+from spy.vm.object import W_Type
 from spy.vm.opspec import W_MetaArg, W_OpSpec
 from spy.vm.primitive import W_I32, W_Dynamic
 from spy.vm.registry import ModuleRegistry
@@ -189,3 +191,18 @@ class TestBuiltins(CompilerTest):
         """
         mod = self.compile(src)
         assert mod.foo() == 10
+
+    @no_C
+    def test_list_literal(self):
+        src = """
+        def foo(x: i32) -> i32:
+            l = [1, 2, 3]
+            return l[1] + x
+        """
+        mod = self.compile(src)
+        assert mod.foo(5) == 2 + 5
+
+    def test_registry_builtin_list_type(self):
+        # Ensure `B.w_list` is still a W_Type after changes; VM internals rely
+        # on this being the builtin list type.
+        assert isinstance(B.w_list, W_Type)

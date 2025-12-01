@@ -876,24 +876,21 @@ class AbstractFrame:
         if (
             B is not None
             and w_val is getattr(B, "w_list", None)
-            and self.ns.modname != "stdlib._list"
+            and self.ns.modname != "_list"
         ):
             # Import the stdlib implementation and bind it to the builtin `list`.
             try:
-                w_mod = self.vm.import_("stdlib._list")
+                w_mod = self.vm.import_("_list")
                 # Prefer `List` exported symbol (capitalized), fallback to `list`.
                 if (w_new_val := w_mod.getattr_maybe("List")) is None:
                     w_new_val = w_mod.getattr_maybe("list")
                 if w_new_val is not None:
-                    # Update module builtins and registry value so future lookups see
-                    # the stdlib version.
-                    bmod = self.vm.modules_w.get("builtins")
-                    if bmod is not None:
-                        bmod._dict_w["list"] = w_new_val
-                    try:
-                        setattr(B, "w_list", w_new_val)  # update registry attribute
-                    except Exception:
-                        pass
+                    # Update the closure local value so future lookups in this
+                    # frame (and frames sharing this closure) use the stdlib
+                    # implementation. We avoid changing the builtins module
+                    # mapping to keep VM internals working.
+                    outervars[sym.name].w_val = w_new_val
+                    outervars[sym.name].w_T = self.vm.dynamic_type(w_new_val)
                     # Update the current frame closure local variable.
                     outervars[sym.name].w_val = w_new_val
                     outervars[sym.name].w_T = self.vm.dynamic_type(w_new_val)
@@ -921,21 +918,19 @@ class AbstractFrame:
         if (
             B is not None
             and w_val is getattr(B, "w_list", None)
-            and self.ns.modname != "stdlib._list"
+            and self.ns.modname != "_list"
         ):
             try:
-                w_mod = self.vm.import_("stdlib._list")
+                w_mod = self.vm.import_("_list")
                 if (w_new_val := w_mod.getattr_maybe("List")) is None:
                     w_new_val = w_mod.getattr_maybe("list")
                 if w_new_val is not None:
-                    # Update builtins module and the global cell
-                    bmod = self.vm.modules_w.get("builtins")
-                    if bmod is not None:
-                        bmod._dict_w["list"] = w_new_val
-                    try:
-                        setattr(B, "w_list", w_new_val)
-                    except Exception:
-                        pass
+                    # Update the global cell with the stdlib implementation so
+                    # future lookups read this value off the cell. Do NOT
+                    # update the builtins module mapping.
+                    w_cell.set(w_new_val)
+                    w_val = w_new_val
+                    w_T = self.vm.dynamic_type(w_val)
                     # Update the global cell (so future reads use the new value)
                     w_cell.set(w_new_val)
                     w_val = w_new_val

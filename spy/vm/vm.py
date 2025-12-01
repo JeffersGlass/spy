@@ -123,6 +123,10 @@ class SPyVM:
         self.ast_color_map = None  # By default, don't keep track of expr colors.
         self.robust_import_caching = False  # By default, raise cache errors
         self.make_module(BUILTINS)
+        # Nothing to do here. The builtins closure will be created below and
+        # modified to hide the builtin `list` type in favor of stdlib's
+        # implementation for user code. This avoids mutating the internal
+        # `B.w_list` registry attribute which is used by the VM internals.
         self.builtins_closure = self.make_builtins_closure()
         self.make_module(OPERATOR)
         self.make_module(TYPES)
@@ -233,7 +237,27 @@ class SPyVM:
         loc = BUILTINS.loc
         w_builtins = self.modules_w["builtins"]
         d = {}
+        # Build the builtins closure mapping. For most names we just use the
+        # value in the builtins module. However, for `list` we want to show
+        # a stdlib implementation to user code, while preserving the VM's
+        # internal `B.w_list` type (used for list literals and type
+        # manipulations). To do that, we import `_list` from stdlib and use
+        # its exported function/class for closure purposes only.
         for name, w_val in w_builtins._dict_w.items():
+            if name == "list":
+                try:
+                    w_list_mod = self.import_("_list")
+                    if w_list_mod is not None:
+                        w_new_val = w_list_mod.getattr_maybe(
+                            "List"
+                        ) or w_list_mod.getattr_maybe("list")
+                        if w_new_val is not None:
+                            w_T = self.dynamic_type(w_new_val)
+                            d[name] = LocalVar(name, loc, "blue", w_T, w_new_val)
+                            continue
+                except Exception:
+                    # fall back to using the builtin type
+                    pass
             w_T = self.dynamic_type(w_val)
             d[name] = LocalVar(name, loc, "blue", w_T, w_val)
         return (d,)
