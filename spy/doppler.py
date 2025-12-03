@@ -161,6 +161,9 @@ class DopplerFrame(ASTFrame):
     def shift_stmt_Continue(self, stmt: ast.Continue) -> list[ast.Stmt]:
         return [stmt]
 
+    def shift_stmt_FuncDef(self, stmt: ast.FuncDef) -> list[ast.Stmt]:
+        return [stmt]
+
     def shift_stmt_VarDef(self, vardef: ast.VarDef) -> list[ast.Stmt]:
         varname = vardef.name.value
         is_auto = isinstance(vardef.type, ast.Auto)
