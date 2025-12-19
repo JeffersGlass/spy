@@ -20,6 +20,7 @@ from spy.vm.object import W_Object, W_Type
 from spy.vm.opimpl import W_OpImpl
 from spy.vm.opspec import W_MetaArg
 from spy.vm.primitive import W_Bool
+#from spy.vm.slice import W_Slice
 from spy.vm.struct import W_StructType
 from spy.vm.tuple import W_Tuple
 from spy.vm.typechecker import maybe_plural
@@ -1132,6 +1133,18 @@ class AbstractFrame:
             items_w = [wam.w_val for wam in items_wam]
             w_val = W_Tuple(items_w)
         return W_MetaArg(self.vm, color, B.w_tuple, w_val, op.loc)
+    
+    # def eval_expr_Slice(self, op: ast.Slice) -> W_MetaArg:
+    #     start = self.eval_expr(op.start)
+    #     stop = self.eval_expr(op.stop) 
+    #     step = self.eval_expr(op.step) 
+
+    #     if self.redshifting:
+    #         w_val = ...
+    #     else:
+    #         w_val = None
+    #     return W_MetaArg(self.vm, color=..., w_static_t = W_Slice w_val, loc = op.loc)
+
 
 
 class ASTFrame(AbstractFrame):

@@ -585,6 +585,14 @@ class Parser:
 
     from_py_expr_NotImplemented = unsupported
 
+    def from_py_expr_Slice(self, py_node: py_ast.Slice) -> spy.ast.Slice:
+        return spy.ast.Slice(
+            py_node.loc,
+            self.from_py_expr(py_node.lower) if py_node.lower else None,
+            self.from_py_expr(py_node.upper) if py_node.upper else None,
+            self.from_py_expr(py_node.step) if py_node.step else None
+            )
+
     def from_py_expr_Name(self, py_node: py_ast.Name) -> spy.ast.Name:
         return spy.ast.Name(py_node.loc, py_node.id)
 

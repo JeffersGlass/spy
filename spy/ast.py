@@ -298,6 +298,13 @@ class Call(Expr):
     func: Expr
     args: list[Expr]
 
+@astnode
+class Slice(Expr):
+    precedence = 16
+    start: Optional[Expr]
+    stop: Optional[Expr]
+    step: Optional[Expr]
+
 
 @astnode
 class CallMethod(Expr):

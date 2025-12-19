@@ -1,0 +1,70 @@
+from unsafe import ptr, gc_alloc
+from math import sin, cos, sqrt
+
+POINTS = 100
+
+@struct
+class PointData:
+    x: f64
+    y: f64
+    z: f64
+
+
+@struct
+class Point:
+    __ll__: ptr[PointData]
+    
+    def __new__(i: i32) -> Point:
+        data = gc_alloc(PointData)(1)
+        data.x = sin(i)
+        data.y = cos(i) * 3
+        data.y = (data.x * data.x) / 2
+        return Point.__make__(data)
+
+    def normalize(self) -> None:
+        _x = self.__ll__.x
+        _y = self.__ll__.y
+        _z = self.__ll__.z
+        norm = sqrt(_x * _x + _y * _y + _z * _z)
+        if norm == 0: return
+        self.__ll__.x = self.__ll__.x / norm
+        self.__ll__.y = self.__ll__.y / norm
+        self.__ll__.z = self.__ll__.z / norm
+
+    def maximize(self, other: Point) -> Point:
+        if self.__ll__.x > other.__ll__.x:
+            self.__ll__.x = self.__ll__.x
+        else:
+            self.__ll__.x = other.__ll__.x
+
+        if self.__ll__.y > other.__ll__.y:
+            self.__ll__.y = self.__ll__.y
+        else:
+            self.__ll__.y = other.__ll__.y
+
+        if self.__ll__.z > other.__ll__.z:
+            self.__ll__.z = self.__ll__.z
+        else:
+            self.__ll__.z = other.__ll__.z
+        return self
+
+
+def maximize(points: list[Point]) -> Point:
+    next = points[0]
+    for i in range(len(points)):
+        if i == 0: continue
+        next = next.maximize(points[i])
+    return next
+
+def benchmark(n: i32) -> Point:
+    points: list[Point] = []
+    for i in range(n):
+        points.append(Point(i))
+    for p in points:
+        p.normalize()
+    return maximize(points)
+
+
+def main() -> None:
+    result = benchmark(POINTS)
+    print("Point" + str(result.__ll__[0].x) + " " + str(result.__ll__[0].y) + " " + str(result.__ll__[0].z))

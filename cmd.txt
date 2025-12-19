@@ -1,0 +1,9 @@
+| pyparse    Dump the Python AST                                                                                                                                                                                         │
+│ parse      Dump the SPy AST                                                                                                                                                                                            │
+│ imports    Dump the (recursive) list of imports                                                                                                                                                                        │
+│ symtable   Dump the symtables                                                                                                                                                                                          │
+│ redshift   Perform redshift and dump the result                                                                                                                                                                        │
+│ colorize   Output the pre-redshifted AST with blue / red text colors.                                                                                                                                                  │
+│ execute    Execute the file                                                                                                                                                                                            │
+│ compile    Compile the generated C code                                                                                                                                                                                │
+│ cleanup    Remove all .spyc cache files from vm.path directories        

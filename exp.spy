@@ -1,0 +1,8 @@
+       
+def main() -> None:
+    x: list[i32] = [1,2,3]
+    index: i32 = 0
+    for num in enumerate(x):
+        if index == 0:
+            continue
+        print(x)
