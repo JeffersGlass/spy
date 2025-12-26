@@ -17,6 +17,7 @@ from spy.vm.modules.__spy__.interp_list import (
 from spy.vm.object import W_Object, W_Type
 from spy.vm.opspec import W_MetaArg, W_OpSpec
 from spy.vm.primitive import W_F64, W_I8, W_I32, W_U8, W_Bool, W_Dynamic, W_NoneType
+from spy.vm.slice import W_Slice
 from spy.vm.str import W_Str
 
 if TYPE_CHECKING:
@@ -51,6 +52,14 @@ def w_min(vm: "SPyVM", w_x: W_I32, w_y: W_I32) -> W_I32:
     y = vm.unwrap_i32(w_y)
     res = vm.ll.call("spy_builtins$min", x, y)
     return vm.wrap(res)
+
+
+@BUILTINS.builtin_func
+def w_slice(vm: "SPyVM", w_start: W_I32, w_stop: W_I32, w_step: W_I32) -> W_Slice:
+    start = vm.unwrap_i32(w_start)
+    stop = vm.unwrap_i32(w_stop)
+    step = vm.unwrap_i32(w_step)
+    return W_Slice(start, stop, step)
 
 
 @BUILTINS.builtin_func(color="blue", kind="metafunc")

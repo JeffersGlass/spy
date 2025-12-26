@@ -1,0 +1,6 @@
+def foo() -> Slice:
+    s = slice(1, 2, 3)
+    return s
+
+def main() -> None:
+    print(foo())

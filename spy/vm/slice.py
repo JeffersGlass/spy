@@ -23,4 +23,10 @@ class W_Slice(W_Object):
         self.step = step
 
     def spy_unwrap(self, vm: "SPyVM") -> tuple:
-        return slice(self.start, self.stop, self.end)
+        return slice(self.start, self.stop, self.step)
+
+    def spy_key(self, vm: "SPyVM") -> Any:
+        return ("slice", self.start, self.stop, self.step)
+
+    def __repr__(self) -> str:
+        return f"W_Slice({self.start}, {self.stop}, {self.step})"
