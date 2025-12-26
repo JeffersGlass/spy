@@ -1,0 +1,21 @@
+
+@struct
+class Foo:
+    i: i32
+    j: i32
+
+    def __getitem__(self, sel: i32) -> i32:
+            if STATIC_TYPE(sel) == i32:
+                return self.i
+            else:
+                return self.j
+
+    def __getitem__(self, sel: Slice) -> i32:
+        if STATIC_TYPE(sel) == i32:
+            return self.i
+        else:
+            return self.j
+
+def main() -> None:
+    f = Foo(1,2)
+    print(f[-1])

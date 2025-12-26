@@ -7,6 +7,7 @@ from spy.vm.modules.__spy__ import SPY
 from spy.vm.object import W_Object, W_Type
 from spy.vm.opspec import W_MetaArg, W_OpSpec
 from spy.vm.primitive import W_I32, W_Bool
+from spy.vm.slice import W_Slice
 from spy.vm.str import W_Str
 
 if TYPE_CHECKING:
@@ -179,14 +180,23 @@ class W_InterpList(W_BaseInterpList, Generic[T]):
     @builtin_method("__getitem__", color="blue", kind="metafunc")
     @staticmethod
     def w_GETITEM(vm: "SPyVM", wam_list: W_MetaArg, wam_i: W_MetaArg) -> W_OpSpec:
+        ARG_TYPE = wam_i.w_static_T  # number or slice, mostly
+
         w_listtype = W_InterpList._get_listtype(wam_list)
         w_T = w_listtype.w_itemtype
         LIST = Annotated[W_InterpList, w_listtype]
-        T = Annotated[W_Object, w_T]
 
-        @vm.register_builtin_func(w_listtype.fqn)
-        def w_getitem(vm: "SPyVM", w_list: LIST, w_i: W_I32) -> T:
-            i = vm.unwrap_i32(w_i)
+        if ARG_TYPE == W_Slice:
+            T = LIST
+        else:
+            T = Annotated[W_Object, w_T]
+
+        # @vm.register_builtin_func(w_listtype.fqn)
+        def w_getitem(vm: "SPyVM", w_list: LIST, w_i: ARG_TYPE) -> T:
+            if int(ARG_TYPE):
+                i = vm.unwrap_i32(w_i)
+            elif ARG_TYPE is W_Slice:
+                i = vm.unwrap(w_i)
             # XXX bound check?
             return w_list.items_w[i]
 
