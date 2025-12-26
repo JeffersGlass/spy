@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING, Annotated, Any, Optional
 from spy.vm.b import BUILTINS, B
 from spy.vm.builtin import builtin_method
 from spy.vm.object import W_Object, W_Type
+from spy.vm.opspec import W_MetaArg, W_OpSpec
 from spy.vm.primitive import W_I32
 
 if TYPE_CHECKING:
@@ -32,10 +33,21 @@ class W_Slice(W_Object):
     def spy_key(self, vm: "SPyVM") -> Any:
         return (
             "slice",
-            vm.unwrap_i32(self.start),
-            vm.unwrap_i32(self.stop),
-            vm.unwrap_i32(self.step),
+            self.start,
+            self.stop,
+            self.step,
         )
 
     def __repr__(self) -> str:
         return f"W_Slice({self.start}, {self.stop}, {self.step})"
+
+    @builtin_method("__new__", color="blue", kind="metafunc")
+    @staticmethod
+    def w_NEW(
+        vm: "SPyVM", w_start: W_MetaArg, w_stop: W_MetaArg, w_step: W_MetaArg
+    ) -> W_OpSpec:
+        def w_new(vm: "SPyVM", *args_w: W_I32) -> W_Slice:
+            return W_Slice(w_start, w_stop, w_step)
+
+        return W_OpSpec(w_new, list(w_start, w_stop, w_step))
+        ...
