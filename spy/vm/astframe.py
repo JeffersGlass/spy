@@ -1135,12 +1135,25 @@ class AbstractFrame:
         return W_MetaArg(self.vm, color, B.w_tuple, w_val, op.loc)
 
     def eval_expr_Slice(self, op: ast.Slice) -> W_MetaArg:
-        start = self.eval_expr(op.start)
-        stop = self.eval_expr(op.stop)
-        step = self.eval_expr(op.step)
+        start = (
+            self.eval_expr(op.start)
+            if op.start is not None
+            else W_MetaArg(self.vm, "blue", TYPES.NoneType, B.w_none, op.loc)
+        )
+        stop = (
+            self.eval_expr(op.stop)
+            if op.stop is not None
+            else W_MetaArg(self.vm, "blue", TYPES.NoneType, B.w_none, op.loc)
+        )
+        step = (
+            self.eval_expr(op.step)
+            if op.step is not None
+            else W_MetaArg(self.vm, "blue", TYPES.NoneType, B.w_none, op.loc)
+        )
 
         w_val = W_Slice(start, stop, step)
-        return W_MetaArg(self.vm, "red", W_Slice, w_val, op.loc)
+        # XXX What color should this be?
+        return W_MetaArg(self.vm, "red", B.w_Slice, w_val, op.loc)
 
 
 class ASTFrame(AbstractFrame):
