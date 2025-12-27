@@ -1,6 +1,6 @@
 def foo() -> Slice:
-    s = slice(1, 2, 3)
-    return s
+    l = [1,2,3]
+    return l[1:2:1]
 
 def main() -> None:
-    print(foo())
+    print(bar())
