@@ -1,6 +1,6 @@
 from contextlib import contextmanager
 from types import NoneType
-from typing import TYPE_CHECKING, Iterator, Optional, Sequence
+from typing import TYPE_CHECKING, Iterator, NoReturn, Optional, Sequence
 
 from spy import ast
 from spy.analyze.symtable import Color, Symbol, SymTable, maybe_blue
@@ -20,8 +20,6 @@ from spy.vm.object import W_Object, W_Type
 from spy.vm.opimpl import W_OpImpl
 from spy.vm.opspec import W_MetaArg
 from spy.vm.primitive import W_Bool
-
-# from spy.vm.slice import W_Slice
 from spy.vm.struct import W_StructType
 from spy.vm.tuple import W_Tuple
 from spy.vm.typechecker import maybe_plural
@@ -1135,29 +1133,9 @@ class AbstractFrame:
             w_val = W_Tuple(items_w)
         return W_MetaArg(self.vm, color, B.w_tuple, w_val, op.loc)
 
-    def eval_expr_Slice(self, op: ast.Slice) -> W_MetaArg:
+    def eval_expr_Slice(self, op: ast.Slice) -> NoReturn:
         msg = "Slices should be eliminated by the parser"
-        raise SPyError.simple("W_TypeError", msg, "expected `type`", expr.loc)
-
-        """start = (
-            self.eval_expr(op.start)
-            if op.start is not None
-            else W_MetaArg(self.vm, "blue", TYPES.NoneType, B.w_none, op.loc)
-        )
-        stop = (
-            self.eval_expr(op.stop)
-            if op.stop is not None
-            else W_MetaArg(self.vm, "blue", TYPES.NoneType, B.w_none, op.loc)
-        )
-        step = (
-            self.eval_expr(op.step)
-            if op.step is not None
-            else W_MetaArg(self.vm, "blue", TYPES.NoneType, B.w_none, op.loc)
-        )
-
-        w_val = W_Slice(start, stop, step)
-        # XXX What color should this be?
-        return W_MetaArg(self.vm, "red", B.w_Slice, w_val, op.loc)"""
+        raise SPyError.simple("W_TypeError", msg, "expected `type`", op.loc)
 
 
 class ASTFrame(AbstractFrame):

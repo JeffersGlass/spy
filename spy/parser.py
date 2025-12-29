@@ -585,7 +585,7 @@ class Parser:
 
     from_py_expr_NotImplemented = unsupported
 
-    def from_py_expr_Slice(self, py_node: py_ast.Slice) -> spy.ast.Slice:
+    def from_py_expr_Slice(self, py_node: py_ast.Slice) -> spy.ast.Call:
         return spy.ast.Call(
             py_node.loc,
             func=spy.ast.Name(py_node.loc, id="slice"),
