@@ -195,6 +195,11 @@ class W_Struct(W_Object):
         if is_list:
             return unwrap_list(vm, self)
 
+        # hack hack hack, as we don't have a better way to check whether w_T is a 'Slice'
+        is_slice = str(fqn).startswith("_slice::Slice")
+        if is_slice:
+            return unwrap_slice(vm, self)
+
         fields = {key: w_obj.spy_unwrap(vm) for key, w_obj in self.values_w.items()}
         return UnwrappedStruct(fqn, fields)
 
@@ -299,3 +304,17 @@ def unwrap_list(vm: "SPyVM", w_list: W_Object) -> list[Any]:
         w_item = vm.getitem_w(w_list, vm.wrap(i), color="red")
         items.append(vm.unwrap(w_item))
     return items
+
+
+def unwrap_slice(vm: "SPyVM", w_slice: W_Object) -> list[Any]:
+    """
+    Only useful in tests
+    """
+
+    def get_unwrapped(attr: str) -> int | None:
+        return vm.unwrap_i32(w_slice.values_w[attr])
+
+    start = get_unwrapped("start") if get_unwrapped("start_is_none") == 0 else None
+    stop = get_unwrapped("stop") if get_unwrapped("stop_is_none") == 0 else None
+    step = get_unwrapped("step") if get_unwrapped("step_is_none") == 0 else None
+    return slice(start, stop, step)
