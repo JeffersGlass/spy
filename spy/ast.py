@@ -298,12 +298,15 @@ class Call(Expr):
     func: Expr
     args: list[Expr]
 
-@astnode
+
+# Slices should be replaced by calls to slice() in the parser
+""" @astnode
 class Slice(Expr):
     precedence = 16
     start: Optional[Expr]
     stop: Optional[Expr]
     step: Optional[Expr]
+"""
 
 
 @astnode
