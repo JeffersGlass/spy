@@ -12,6 +12,7 @@ from spy.vm.b import TYPES, B
 from spy.vm.builtin import IRTag
 from spy.vm.function import W_ASTFunc, W_Func
 from spy.vm.modules.unsafe.ptr import W_Ptr
+from spy.vm.struct import W_Struct
 
 if TYPE_CHECKING:
     from spy.backend.c.cmodwriter import CModuleWriter
@@ -274,6 +275,8 @@ class CFuncWriter:
             assert w_obj.addr == 0, "only NULL ptrs can be constants"
             return C.Literal(const.fqn.c_name)
         elif isinstance(w_obj, W_Func):
+            return C.Literal(const.fqn.c_name)
+        if isinstance(w_obj, W_Struct):
             return C.Literal(const.fqn.c_name)
         else:
             assert False

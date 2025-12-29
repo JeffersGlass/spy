@@ -145,6 +145,8 @@ class CModuleWriter:
         self.tbc.wl()
         self.tbc.wl("// constants and globals")
         self.tbc_globals = self.tbc.make_nested_builder()
+        if self.is_main_mod:
+            self.tbc_globals.wl("extern spy__slice$Slice spy__slice$Slice$slicefqn;")
         self.tbc.wl()
         self.tbc.wl("// content of the module")
         self.tbc.wl()
@@ -212,7 +214,16 @@ class CModuleWriter:
             c_type = self.ctx.w2c(w_T)
             self.tbh_globals.wl(f"extern {c_type} {fqn.c_name};")
             self.tbc_globals.wl(f"{c_type} {fqn.c_name} = {{0}};")
-
+        elif isinstance(w_T, W_StructType):
+            c_type = self.ctx.w2c(w_T)
+            self.tbh_globals.wl(f"{c_type} {fqn.c_name} = {{")
+            with self.tbh_globals.indent():
+                self.tbh_globals.writeline("// contents")
+                for attrib, val in w_obj.values_w.items():
+                    self.tbh_globals.writeline(
+                        f".{attrib} = {self.ctx.vm.unwrap(val)},"
+                    )
+            self.tbh_globals.wl(f"}};")
         else:
             raise NotImplementedError("WIP")
 

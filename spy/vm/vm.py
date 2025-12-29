@@ -461,6 +461,10 @@ class SPyVM:
             w_T = self.dynamic_type(w_val)
             fqn = w_T.fqn.join("prebuilt")
             fqn = self.get_unique_FQN(fqn)
+        elif "Slice" in repr(w_val):
+            w_T = self.dynamic_type(w_val)
+            fqn = w_T.fqn.join("slicefqn")
+            fqn = self.get_unique_FQN(fqn)
         else:
             w_T = self.dynamic_type(w_val)
             T = w_T.fqn.human_name
