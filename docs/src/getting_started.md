@@ -107,4 +107,39 @@ But SPy programs can be compiled to C code, and built for the current machine, a
 main(): 0.003 seconds
 ```
 
-Quite the speedup!
+Quite the speedup! What is happening under the hood?
+
+We can view the C code that the SPy compiler is generating using the `--cdump` flag:
+
+=== "venv"
+    ```bash
+    python -m spy build --cdump fibo.spy
+    ```
+=== "uv"
+    ```bash
+    uv run spy build --cdump fibo.spy
+    ```
+
+```c
+// headers skipped for brevity
+
+int main(void) {
+    spy_fibo$main();
+    return 0;
+}
+#line SPY_LINE(3, 18)
+int32_t spy_fibo$fibo(int32_t n) {
+    if (n <= 1){
+        return n;
+    } else {
+        return spy_fibo$fibo(n - 1) + spy_fibo$fibo(n - 2);
+    }
+    abort(); /* reached the end of the function without a `return` */
+}
+#line SPY_LINE(9, 27)
+void spy_fibo$main(void) {
+    spy_builtins$print_i32(spy_fibo$fibo(20));
+}
+```
+
+Our Python program has been translated into C code, with Python-esque types translated into C types, and python's dynamic functions (like `print`) transformed into versions which operate only on a single type (`print_i32`).
