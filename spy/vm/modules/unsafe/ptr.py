@@ -195,7 +195,7 @@ class W_RefType(W_MemLocType):
         w_ptrtype = vm.fast_call(w_ptr_func, [self.w_itemT])
         assert isinstance(w_ptrtype, W_PtrType)
         return w_ptrtype
-
+    
 
 @UNSAFE.builtin_type("_memloc")
 class W_MemLoc(W_Object):
@@ -447,6 +447,22 @@ class W_Ref(W_MemLoc):
 
         else:
             return W_OpSpec.NULL
+
+        
+    @builtin_method("__call_method__", color="blue", kind="metafunc")
+    @staticmethod
+    def w_CALL_METHOD(
+        vm: "SPyVM", wam_T: "W_MetaArg", wam_name: "W_MetaArg", *args_wam: "W_MetaArg"
+    ) -> "W_OpSpec":
+        
+        w_T = wam_T.w_blueval
+        assert isinstance(w_T, W_Type)
+        breakpoint()
+        name = wam_name.blue_unwrap_str(vm)
+        w_meth = w_T.lookup(name)
+        if w_meth is None:
+            return W_OpSpec.NULL
+
 
 
 @UNSAFE.builtin_func(color="blue")
