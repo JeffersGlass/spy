@@ -1134,6 +1134,16 @@ class AbstractFrame:
 
         return wam_list
 
+    def eval_expr_Slice(self, op: ast.Slice) -> W_MetaArg:
+        w_SliceType = self.vm.lookup_global(FQN("_slice::Slice"))
+        assert isinstance(w_SliceType, W_Type)
+
+        wam_T = W_MetaArg.from_w_obj(self.vm, w_SliceType)
+        args = [self.eval_expr(arg) for arg in (op.start, op.stop, op.step)]
+        w_opimpl = self.vm.call_OP(op.loc, OP.w_CALL, [wam_T] + args)
+        wam_slice = self.eval_opimpl(op, w_opimpl, [wam_T] + args)
+        return wam_slice
+
     def eval_expr_Tuple(self, op: ast.Tuple) -> W_MetaArg:
         items_wam = [self.eval_expr(item) for item in op.items]
         colors = [wam.color for wam in items_wam]
@@ -1146,17 +1156,11 @@ class AbstractFrame:
         return W_MetaArg(self.vm, color, B.w_tuple, w_val, op.loc)
 
     def eval_expr_Dict(self, dict: ast.Dict) -> W_MetaArg:
-        # 0. empty dict[k, v] are hanlded as immutable dictionary.
-        # We need to know type of [k, v] (e.g. [str, i32])
+        # 0. empty dicts are special
         if len(dict.items) == 0:
-            # empty dict is not support yet.
-            # it will come along with compiler part.
-            raise SPyError.simple(
-                "W_WIP",
-                "empty dict literals are not supported yet",
-                "this is empty dict",
-                dict.loc,
-            )
+            w_T = SPY.w_EmptyDictType
+            w_val = SPY.w_empty_dict
+            return W_MetaArg(self.vm, "red", w_T, w_val, dict.loc)
 
         # 1. evaluate type of key, value then infer the whole items type.
         key_value_pair = []
@@ -1205,15 +1209,17 @@ class AbstractFrame:
 
         # 3. push items into the dict
         assert isinstance(w_T, W_Type)
-        fqn_setitem = w_T.fqn.join("__setitem__")
-        w_setitem = self.vm.lookup_global(fqn_setitem)
-        wam_setitem = W_MetaArg.from_w_obj(self.vm, w_setitem)
+        fqn_push = w_T.fqn.join("_push")
+        w_push = self.vm.lookup_global(fqn_push)
+        wam_push = W_MetaArg.from_w_obj(self.vm, w_push)
 
         for pair, (wam_key, wam_val) in zip(dict.items, key_value_pair):
             w_opimpl = self.vm.call_OP(
-                dict.loc, OP.w_CALL, [wam_setitem, wam_dict, wam_key, wam_val]
+                dict.loc, OP.w_CALL, [wam_push, wam_dict, wam_key, wam_val]
             )
-            self.eval_opimpl(pair, w_opimpl, [wam_setitem, wam_dict, wam_key, wam_val])
+            wam_dict = self.eval_opimpl(
+                pair, w_opimpl, [wam_push, wam_dict, wam_key, wam_val]
+            )
 
         return wam_dict
 
