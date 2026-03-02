@@ -31,6 +31,8 @@ title: SPy Built-In Functions
 ### __@blue.generic__
 :   Denotes that the decorated function accepts a type as its first argument. Generic functions should return a function object.
 
+:   Generic functions are called using the spy-specific syntax `func[Type](args)`.
+
 ```python
   @blue.generic
   def add(T):
