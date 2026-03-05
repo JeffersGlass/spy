@@ -90,6 +90,8 @@ def generic_mem_read(vm: "SPyVM", addr: int, w_T: W_Type) -> W_Object:
         v_addr, v_length = vm.ll.mem.read_ptr(addr)
         assert v_length == 1
         return W_Str.from_ptr(vm, v_addr)
+    elif w_T is B.w_bool:
+        return vm.wrap(vm.ll.mem.read_bool(addr))
     elif isinstance(w_T, W_PtrType):
         v_addr, v_length = vm.ll.mem.read_ptr(addr)
         return W_Ptr(w_T, v_addr, v_length)
@@ -117,6 +119,9 @@ def generic_mem_write(vm: "SPyVM", addr: int, w_T: W_Type, w_val: W_Object) -> N
         v = w_val.ptr
         assert 0 < v < 2**31 - 1
         vm.ll.mem.write_ptr(addr, v, 1)
+    elif w_T is B.w_bool:
+        v = vm.unwrap_bool(w_val)
+        vm.ll.mem.write_bool(addr, v)
     elif isinstance(w_T, W_PtrType):
         assert isinstance(w_val, W_Ptr)
         vm.ll.mem.write_ptr(addr, w_val.addr, w_val.length)

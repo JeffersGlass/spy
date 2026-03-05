@@ -112,6 +112,10 @@ class LLWasmMemoryBase:
     def read_f64(self, addr: int) -> int:
         rawbytes = self.read(addr, 8)
         return struct.unpack("d", rawbytes)[0]
+    
+    def read_bool(self, addr: int) -> int:
+        rawbytes = self.read(addr, 1)
+        return struct.unpack("?", rawbytes)[0]
 
     def read_ptr(self, addr: int) -> tuple[int, int]:
         """
@@ -145,6 +149,9 @@ class LLWasmMemoryBase:
 
     def write_f64(self, addr: int, v: float) -> None:
         self.write(addr, struct.pack("d", v))
+
+    def write_bool(self, addr: int, v:bool) -> None:
+        self.write(addr, struct.pack("?", v))
 
     def write_ptr(self, addr: int, v_addr: int, v_length: int) -> None:
         """

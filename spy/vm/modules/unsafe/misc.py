@@ -13,6 +13,8 @@ def sizeof(w_T: W_Type) -> int:
         return 4
     elif w_T is B.w_f64:
         return 8
+    elif w_T is B.w_bool:
+        return 1
     elif isinstance(w_T, W_StructType):
         return w_T.size
     elif isinstance(w_T, W_PtrType) or w_T is B.w_str:

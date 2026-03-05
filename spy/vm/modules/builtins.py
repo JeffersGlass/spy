@@ -7,6 +7,7 @@ The first half is in vm/b.py. See its docstring for more details.
 from typing import TYPE_CHECKING
 
 from spy.errors import SPyError
+from spy.fqn import FQN
 from spy.vm.b import BUILTINS, TYPES, B
 from spy.vm.function import W_FuncType
 from spy.vm.modules.__spy__.interp_list import (
@@ -18,6 +19,7 @@ from spy.vm.object import W_Object, W_Type
 from spy.vm.opspec import W_MetaArg, W_OpSpec
 from spy.vm.primitive import W_F64, W_I8, W_I32, W_U8, W_Bool, W_Dynamic, W_NoneType
 from spy.vm.str import W_Str
+from spy.vm.struct import W_Struct
 
 if TYPE_CHECKING:
     from spy.vm.vm import SPyVM
@@ -120,6 +122,33 @@ def w_print_dynamic(vm: "SPyVM", w_x: W_Dynamic) -> None:
 @BUILTINS.builtin_func
 def w_print_object(vm: "SPyVM", w_x: W_Object) -> None:
     PY_PRINT(str(w_x))
+
+@BUILTINS.builtin_func(color="blue", kind="metafunc")
+def w_all(vm: "SPyVM", wam_obj: W_MetaArg) -> W_OpSpec:
+    w_T = wam_obj.w_static_T
+    if w_iter_fn := w_T.lookup_func("__fastiter__"):
+        
+        @vm.register_builtin_func("builtins", "all", [w_T.fqn.human_name])
+        def w_inner_all(vm: "SPyVM", inner_wam_obj: W_Object) -> W_Bool:
+            it = vm.fast_call(w_iter_fn, [inner_wam_obj])
+            if not (w_cont_fn := it.w_structtype.lookup_func("__continue_iteration__")):
+                raise SPyError.simple(
+                    "W_TypeError", f"iterator does not implement __continue_iteration__()", f"this is {it}", inner_wam_obj.loc
+                )
+            while cont:= vm.fast_call(w_cont_fn, [it]):
+                item = vm.fast_call(it.w_structtype.lookup_func("__item__"), [it])
+                it = vm.fast_call(it.w_structtype.lookup_func("__next__"), [it])
+                w_cont_fn = it.w_structtype.lookup_func("__continue_iteration__")
+                # TODO Other logic here
+                
+            return B.w_True
+        
+        return W_OpSpec(w_inner_all)
+
+    raise SPyError.simple(
+        "W_TypeError", f"{w_T} does not support the iterator protocol (has no method __next__)", "", wam_obj.loc
+    )
+
 
 
 @BUILTINS.builtin_func(color="blue", kind="metafunc")

@@ -284,3 +284,18 @@ class TestBuiltins(CompilerTest):
         dm = mod.dir_math()
         assert "acos" in dm
         assert "pi" in dm
+
+    @only_interp
+    def test_all(self):
+        src = """
+        def int_list() -> bool:
+            return all([1,2,3])
+        
+        def true_bool_list() -> bool:
+            return all([True, True]) == True
+
+        def mixed_bool_list() -> bool:
+            return all([True, False, True]) == False
+        """
+        mod = self.compile(src)
+        assert mod.int_list() == True
