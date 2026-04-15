@@ -49,6 +49,7 @@ markdown_extensions:
 nav:
   - Home: index.md
   - contributing.md
+  - test.md
   - API Reference:
     - api_reference/python_builtins.md
   - Unsorted notes:
@@ -77,3 +78,6 @@ extra:
     - icon: fontawesome/brands/github
       link: https://github.com/spylang/spy
       name: SPy on GitHub
+
+plugins:
+  - mkdocs-spy

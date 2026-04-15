@@ -111,6 +111,14 @@ extend-exclude = ["*.pyi"]
 [tool.ruff.format]
 line-ending = "auto"
 
+[tool.uv.sources]
+mkdocs-spy = { path = "../mkdocs-spy" }
+
+[dependency-groups]
+docs = [
+    "mkdocs-spy",
+]
+
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["E402"]
 
