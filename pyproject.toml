@@ -1,0 +1,121 @@
+[project]
+name = "spylang"
+authors = [
+    { name = "Antonio Cuni", email = "anto.cuni@gmail.com" }
+]
+version = "0.1.0"
+requires-python = ">=3.12"
+
+dependencies = [
+    "build~=1.3",
+    "click==8.1.8",
+    "fixedint==0.2.0",
+    "ninja==1.11.1.4; sys_platform != 'emscripten'",
+    "py==1.11.0",
+    "typer==0.15.1",
+    "pexpect==4.9.0; sys_platform != 'emscripten'",
+    "wasmtime==8.0.1; sys_platform != 'emscripten'",
+    "ziglang==0.13.0; sys_platform != 'emscripten'",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pdbpp>=0.11.7",
+    "pytest==8.3.4",
+    "ruff~=0.14.0",
+    "mypy==1.15.0",
+    "types-pexpect==4.9.0.20250516; sys_platform != 'emscripten'",
+    # the followings are needed for "tests/compiler/test_cffi.py"
+    "cffi",
+    "setuptools",
+    "pyperclip>=1.10",
+    "pytest_pyodide==0.58.4; sys_platform != 'emscripten'",
+    "pyodide-py==0.27.2; sys_platform != 'emscripten'",
+    "pre-commit==4.3.0",
+    "rodney>=0.4.0",
+]
+
+docs = [
+    "mkdocs==1.6.1",
+    "mkdocs-get-deps==0.2.0",
+    "mkdocs-material==9.7.0",
+    "mkdocs-material-extensions==1.3.1",
+    "pymdown-extensions==10.20",
+    "mike==2.1.3"
+]
+
+[project.urls]
+Homepage = "https://github.com/spylang/spy"
+
+[project.scripts]
+spy = "spy.cli:pyproject_entry_point"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["spy*", "stdlib"]
+
+# setuptools doesn't package .spy files by default,
+# consider .spy files as "package-data" to include them. See:
+# https://setuptools.pypa.io/en/latest/userguide/datafiles.html#package-data
+# https://setuptools.pypa.io/en/latest/userguide/datafiles.html#interplay-between-these-keywords
+[tool.setuptools.package-data]
+stdlib = ["*.spy"]
+
+[tool.pytest.ini_options]
+testpaths = ["spy"]
+addopts = "--dist-dir=pyodide/node_modules/pyodide"
+asyncio_mode = "strict"
+asyncio_default_fixture_loop_scope = "function"
+# needed to ignore warnings caused by using pexpect to run ninja
+filterwarnings = [
+    'ignore:.*use of forkpty.*may lead to deadlocks:DeprecationWarning',
+]
+
+markers = [
+    # compiler_backend
+    "interp: use the 'interp' compiler backend",
+    "doppler: use the 'doppler' compiler backend",
+    "C: use the 'C' compiler backend",
+    "emscripten: use the 'C' backend and run via emscripten",
+    "py-cffi: build cffi-based CPython extensions",
+
+    # llwasm_backend
+    "wasmtime: use the 'wasmtime' llwasm backend",
+    "pyodide: use the 'emscripten' llwasm backend and run the test on pyodide",
+
+    # others
+    "mypy: check mypy",
+]
+
+# Formatter and Linter settings
+[tool.ruff]
+lint.select = [
+    "W",  # pycodestyle warnings
+    "I",  # isort
+    "Q000", # double quotes
+    "C",  # flake8-comprehensions
+    "UP009",  # Remove unnecessary UTF-8 encoding declarations
+]
+lint.ignore = ["C901"]
+line-length = 88
+indent-width = 4
+target-version = "py312"
+extend-exclude = ["*.pyi"]
+
+[tool.ruff.format]
+line-ending = "auto"
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["E402"]
+
+[tool.ruff.lint.flake8-quotes]
+inline-quotes = "double"
+multiline-quotes = "double"
+docstring-quotes = "double"
+avoid-escape = true

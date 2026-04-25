@@ -1,0 +1,212 @@
+"""
+A pythonic wrapper around wasmtime.
+"""
+
+from typing import Any, Optional
+
+import py.path
+import wasmtime as wt
+from typing_extensions import Self
+
+from .base import HostModule, LLWasmInstanceBase, LLWasmMemoryBase, LLWasmModuleBase
+
+WasmTrap = wt.Trap
+
+# NOTE: we must NOT create wt.Engine() at import time!
+# wasmtime.Engine() installs signal handlers for WebAssembly traps. If the
+# engine is created too early, pytest's faulthandler.enable() can overwrite
+# these handlers, causing WASM traps to crash with "Illegal instruction"
+# instead of being properly caught. See PR #378.
+_ENGINE: Optional[wt.Engine] = None
+
+
+def get_engine() -> wt.Engine:
+    global _ENGINE
+    if _ENGINE is None:
+        _ENGINE = wt.Engine()
+    return _ENGINE
+
+
+class LLWasmModule(LLWasmModuleBase):
+    filename: str
+    mod: wt.Module
+
+    def __init__(self, filename: str) -> None:
+        self.filename = filename
+        self.mod = wt.Module.from_file(get_engine(), filename)
+
+    def __repr__(self) -> str:
+        return f"<LLWasmModule {self.filename}>"
+
+    @classmethod
+    async def async_new(cls, url: str) -> Self:
+        raise NotImplementedError("this is needed only for emscripten")
+
+
+def get_linker(
+    store: wt.Store,
+    llmod: LLWasmModule,
+    *,
+    wasi_config: Optional[wt.WasiConfig] = None,
+    hostmods: Optional[list[HostModule]] = None,
+) -> wt.Linker:
+    """
+    Setup a Linker which can be used to instantiate llmod.
+
+    If wasi_config is supplied, the module will be linked agains WASI.
+
+    The remaining non-wasi imports expected by llmod are searched inside the
+    HostModules.
+    """
+    hostmods = hostmods or []
+
+    py2w = {
+        int: wt.ValType.i32(),
+    }
+
+    def FuncType_from_pyfunc(pyfunc: Any) -> wt.FuncType:
+        annotations = pyfunc.__annotations__.copy()
+        py_restype = annotations.pop("return")
+        if py_restype is None:
+            restypes = []
+        else:
+            restypes = [py2w[py_restype]]
+        args = [py2w[pytype] for pytype in annotations.values()]
+        return wt.FuncType(args, restypes)
+
+    def get_wasmfunc(imp: Any) -> wt.Func:
+        methname = f"{imp.module}_{imp.name}"
+        meth = None
+        for hostmod in hostmods or []:
+            meth = getattr(hostmod, methname, None)
+            if meth is not None:
+                break
+        if meth is not None:
+            functype = FuncType_from_pyfunc(meth)
+            return wt.Func(store, functype, meth)
+        # The import is not provided by any hostmod. Create a stub that traps
+        # if actually called.
+        functype = imp.type
+        assert isinstance(functype, wt.FuncType)
+
+        def trap(*args: Any, _name: str = methname) -> None:
+            raise NotImplementedError(f"Called unresolved WASM import: {_name}")
+
+        return wt.Func(store, functype, trap)
+
+    linker = wt.Linker(store.engine)
+    if wasi_config:
+        store.set_wasi(wasi_config)
+        linker.define_wasi()
+
+    for imp in llmod.mod.imports:
+        if imp.module.startswith("wasi_"):
+            continue
+        func = get_wasmfunc(imp)
+        linker.define(store, imp.module, imp.name, func)  # type: ignore
+
+    return linker
+
+
+def get_wasi_config() -> wt.WasiConfig:
+    wasi_config = wt.WasiConfig()
+    # eventually, we want to support argv, with either:
+    #    wasi_config.argv = [...]
+    #    wasi_config.inherit_argv()
+    wasi_config.inherit_stdin()
+    wasi_config.inherit_stdout()
+    wasi_config.inherit_stderr()
+    wasi_config.preopen_dir("/", "/")
+    return wasi_config
+
+
+class LLWasmInstance(LLWasmInstanceBase):
+    f: py.path.local
+    store: wt.Store
+    instance: wt.Instance
+    mem: "LLWasmMemory"
+
+    def __init__(
+        self,
+        llmod: LLWasmModule,
+        hostmods: list[HostModule] = [],
+        *,
+        instance: Optional[wt.Instance] = None,
+    ) -> None:
+        self.llmod = llmod
+        self.store = wt.Store(get_engine())
+        linker = get_linker(
+            self.store, self.llmod, wasi_config=get_wasi_config(), hostmods=hostmods
+        )
+        if instance is None:
+            self.instance = linker.instantiate(self.store, self.llmod.mod)
+        else:
+            self.instance = instance
+        # WASI reactor modules export _initialize to set up the C runtime
+        # (e.g. preopened directory table). Must be called before any libc
+        # functions that depend on WASI state.
+        init = self.instance.exports(self.store).get("_initialize")
+        if init is not None:
+            assert isinstance(init, wt.Func)
+            init(self.store)
+        memory = self.instance.exports(self.store).get("memory")
+        assert isinstance(memory, wt.Memory)
+        self.mem = LLWasmMemory(self.store, memory)
+        for hostmod in hostmods:
+            hostmod.ll = self
+
+    @classmethod
+    async def async_new(
+        cls, llmod: LLWasmModule, hostmods: list[HostModule] = []
+    ) -> Self:
+        return cls(llmod, hostmods)
+
+    @classmethod
+    def from_file(cls, f: py.path.local, hostmods: list[HostModule] = []) -> Self:
+        llmod = LLWasmModule(str(f))
+        return cls(llmod, hostmods)
+
+    def get_export(self, name: str) -> Any:
+        exports = self.instance.exports(self.store)
+        wasm_obj = exports.get(name)
+        if wasm_obj is None:
+            raise AttributeError(name)
+        return wasm_obj
+
+    def all_exports(self) -> Any:
+        exports = self.instance.exports(self.store)
+        return list(exports._extern_map)
+
+    def get_addr_of_global(self, name: str) -> int:
+        g = self.get_export(name)
+        assert isinstance(g, wt.Global)
+        addr = g.value(self.store)
+        assert isinstance(addr, int)
+        return addr
+
+    def call(self, name: str, *args: Any) -> Any:
+        func = self.get_export(name)
+        assert isinstance(func, wt.Func)
+        return func(self.store, *args)
+
+
+class LLWasmMemory(LLWasmMemoryBase):
+    """
+    Thin wrapper around wt.Memory
+    """
+
+    store: wt.Store
+    mem: wt.Memory
+
+    def __init__(self, store: wt.Store, mem: wt.Memory):
+        self.store = store
+        self.mem = mem
+
+    def read(self, addr: int, n: int) -> bytearray:
+        """
+        Read n bytes of memory at the given address.
+        """
+        return self.mem.read(self.store, addr, addr + n)
+
+    def write(self, addr: int, b: bytes) -> None:
+        self.mem.write(self.store, b, addr)

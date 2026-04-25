@@ -1,0 +1,108 @@
+from unsafe import gc_alloc, gc_ptr
+
+a = [1, 2, 3]
+
+
+@blue.generic
+def array1d(DTYPE):
+    @struct
+    class ArrayData:
+        l: i32
+        items: gc_ptr[DTYPE]
+
+    @struct
+    class ndarray:
+        __ll__: gc_ptr[ArrayData]
+
+        def __new__(l: i32) -> ndarray:
+            data = gc_alloc[ArrayData](1)
+            data.l = l
+            data.items = gc_alloc[DTYPE](l)
+            return ndarray.__make__(data)
+
+        def __getitem__(self, i: i32) -> DTYPE:
+            ll = self.__ll__
+            if i >= ll.l:
+                raise IndexError
+            return ll.items[i]
+
+        def __setitem__(self, i: i32, v: DTYPE) -> None:
+            ll = self.__ll__
+            if i >= ll.l:
+                raise IndexError
+            ll.items[i] = v
+
+        @property
+        def l(self) -> i32:
+            return self.__ll__.l
+
+    return ndarray
+
+
+@blue.generic
+def array2d(DTYPE):
+    @struct
+    class ArrayData:
+        h: i32
+        w: i32
+        items: gc_ptr[DTYPE]
+
+    @struct
+    class ndarray:
+        __ll__: gc_ptr[ArrayData]
+
+        def __new__(h: i32, w: i32) -> ndarray:
+            data = gc_alloc[ArrayData](1)
+            data.h = h
+            data.w = w
+            data.items = gc_alloc[DTYPE](h * w)
+            return ndarray.__make__(data)
+
+        def __getitem__(self, i: i32, j: i32) -> DTYPE:
+            ll = self.__ll__
+            if i >= ll.h:
+                raise IndexError
+            if j >= ll.w:
+                raise IndexError
+            idx = (i * ll.w) + j
+            return ll.items[idx]
+
+        def __setitem__(self, i: i32, j: i32, v: DTYPE) -> None:
+            ll = self.__ll__
+            if i >= ll.h:
+                raise IndexError
+            if j >= ll.w:
+                raise IndexError
+            idx = (i * ll.w) + j
+            ll.items[idx] = v
+
+        @property
+        def h(self) -> i32:
+            return self.__ll__.h
+
+        @property
+        def w(self) -> i32:
+            return self.__ll__.w
+
+        def print_flatten(self) -> None:
+            ll = self.__ll__
+            i = 0
+            while i < ll.h * ll.w:
+                print(ll.items[i])
+                i = i + 1
+
+    return ndarray
+
+
+@blue.generic
+def array(DTYPE, NDIM):
+    if NDIM == 1:
+        return array1d[DTYPE]
+    if NDIM == 2:
+        return array2d[DTYPE]
+    raise StaticError("number of dimensions not supported")
+
+
+@blue
+def __INIT__(mod):
+    print("array.__INIT__")

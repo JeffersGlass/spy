@@ -1,0 +1,104 @@
+"""
+SPy 'interp' backend.
+
+This is useful only for tests. Expose interp-level W_Modules and W_Funtions as
+Python objects which can be accessed and called by tests.
+
+The SPy code is interpreted by the SPy VM.
+
+Python objects are automatically converted into their SPy equivalent and
+vice-versa, by using vm.wrap and vm.unwrap.
+"""
+
+from ctypes import c_float as float32
+from typing import Any
+
+import fixedint
+
+from spy.vm.b import B
+from spy.vm.cell import W_Cell
+from spy.vm.function import W_ASTFunc, W_Func, W_FuncType
+from spy.vm.module import W_Module
+from spy.vm.vm import SPyVM
+
+
+class InterpModuleWrapper:
+    """
+    Wrap a W_Module.
+    """
+
+    vm: SPyVM
+    w_mod: W_Module
+
+    def __init__(self, vm: SPyVM, w_mod: W_Module) -> None:
+        self.vm = vm
+        self.w_mod = w_mod
+
+    def __dir__(self) -> list[str]:
+        return ["vm", "w_mod"] + list(self.w_mod.keys())
+
+    def __getattr__(self, attr: str) -> Any:
+        w_obj = self.w_mod.getattr_maybe(attr)
+        if w_obj is None:
+            raise AttributeError(attr)
+
+        if isinstance(w_obj, W_Cell):
+            w_obj = w_obj.get()
+
+        if isinstance(w_obj, W_ASTFunc):
+            w_func = w_obj
+            if not w_func.is_valid:
+                # let's find the redshifted version
+                assert w_func.w_redshifted_into is not None
+                w_func = w_func.w_redshifted_into
+                assert w_func.redshifted
+                assert self.vm.lookup_global(w_func.fqn) is w_func
+            return InterpFuncWrapper(self.vm, w_func)
+        elif isinstance(w_obj, W_Func):
+            assert False, "WHAT?"
+        else:
+            return self.vm.unwrap(w_obj)
+
+
+class InterpFuncWrapper:
+    """
+    Wrap a W_Func.
+    """
+
+    vm: SPyVM
+    w_func: W_Func
+    w_functype: W_FuncType
+
+    def __init__(self, vm: SPyVM, w_func: W_Func):
+        self.vm = vm
+        self.w_func = w_func
+        self.w_functype = w_func.w_functype
+
+    def __call__(self, *args: Any, unwrap: bool = True) -> Any:
+        got = len(args)
+        exp = len(self.w_functype.params)
+        if got != exp:
+            msg = f"{self.w_func.fqn} takes exactly {exp} arguments, got {got}"
+            raise TypeError(msg)
+
+        # *args contains python-level objs. We want to wrap them into args_w
+        # *and to call the func, and unwrap the result
+        args_w = []
+        for arg, param in zip(args, self.w_functype.params, strict=True):
+            w_T = param.w_T
+            if w_T is B.w_i8:
+                arg = fixedint.Int8(arg)
+            elif w_T is B.w_u8:
+                arg = fixedint.UInt8(arg)
+            elif w_T is B.w_u32:
+                arg = fixedint.UInt32(arg)
+            elif w_T is B.w_f32:
+                arg = float32(arg)
+            w_arg = self.vm.wrap(arg)
+            args_w.append(w_arg)
+
+        w_res = self.vm.fast_call(self.w_func, args_w)
+        if unwrap:
+            return self.vm.unwrap(w_res)
+        else:
+            return w_res
