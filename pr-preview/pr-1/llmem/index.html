@@ -894,17 +894,17 @@ depend on the target platform:</p>
 </span></code></pre></div></td></tr></table></div>
 <h2 id="stack-allocated-structs">Stack-allocated structs<a class="headerlink" href="#stack-allocated-structs" title="Permanent link">&para;</a></h2>
 <p>We can define C-like structs:</p>
-<p><code>python
-@struct
-class Point:
-    x: int
-    y: int</code></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nd">@struct</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">Point</span><span class="p">:</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">x</span><span class="p">:</span> <span class="nb">int</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">y</span><span class="p">:</span> <span class="nb">int</span>
+</span></code></pre></div>
 <p>Structs can be instantiated directly, and are <strong>immutable</strong>:</p>
-<p>```python
-p = Point(1, 2)
-print(p.x, p.y)</p>
-<p>p.x = 3 # TypeError
-```</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">p</span> <span class="o">=</span> <span class="n">Point</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="nb">print</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">y</span><span class="p">)</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">p</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="mi">3</span> <span class="c1"># TypeError</span>
+</span></code></pre></div>
 <p>Structs have <strong>inline storage</strong>:</p>
 <ol>
 <li>
@@ -920,28 +920,30 @@ print(p.x, p.y)</p>
 </li>
 </ol>
 <p>For example:</p>
-<p>```python
-@struct
-class Rect:
-    a: Point
-    b: Point</p>
-<p>assert sizeof(Point) == sizeof(int) * 2
-assert sizeof(Rect) == sizeof(int) * 4</p>
-<p>r = Rect(Point(1, 2), Point(3, 4))
-```</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nd">@struct</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">Rect</span><span class="p">:</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="n">a</span><span class="p">:</span> <span class="n">Point</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">b</span><span class="p">:</span> <span class="n">Point</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="k">assert</span> <span class="n">sizeof</span><span class="p">(</span><span class="n">Point</span><span class="p">)</span> <span class="o">==</span> <span class="n">sizeof</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="k">assert</span> <span class="n">sizeof</span><span class="p">(</span><span class="n">Rect</span><span class="p">)</span> <span class="o">==</span> <span class="n">sizeof</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span> <span class="o">*</span> <span class="mi">4</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="n">r</span> <span class="o">=</span> <span class="n">Rect</span><span class="p">(</span><span class="n">Point</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">Point</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+</span></code></pre></div>
 <p>The compiler translates them into plain C structs, something along these lines:</p>
-<p>```c
-typedef struct {
-    int32_t x;
-    int32_t y;
-} Point;</p>
-<p>typedef struct {
-    Point a;
-    Point b;
-} Rect;</p>
-<p>Point p = {1, 2};
-Rect r = {(Point){1, 2}, (Point){3, 4}};
-```</p>
+<div class="language-c highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">typedef</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">    </span><span class="kt">int32_t</span><span class="w"> </span><span class="n">x</span><span class="p">;</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">    </span><span class="kt">int32_t</span><span class="w"> </span><span class="n">y</span><span class="p">;</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="p">}</span><span class="w"> </span><span class="n">Point</span><span class="p">;</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="k">typedef</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="w">    </span><span class="n">Point</span><span class="w"> </span><span class="n">a</span><span class="p">;</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="w">    </span><span class="n">Point</span><span class="w"> </span><span class="n">b</span><span class="p">;</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="p">}</span><span class="w"> </span><span class="n">Rect</span><span class="p">;</span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="n">Point</span><span class="w"> </span><span class="n">p</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">};</span>
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="n">Rect</span><span class="w"> </span><span class="n">r</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{(</span><span class="n">Point</span><span class="p">){</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">},</span><span class="w"> </span><span class="p">(</span><span class="n">Point</span><span class="p">){</span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="p">}};</span>
+</span></code></pre></div>
 <p>Stack-allocated structs are always safe to use.</p>
 <h2 id="raw-and-gc-memory">Raw and GC memory<a class="headerlink" href="#raw-and-gc-memory" title="Permanent link">&para;</a></h2>
 <p>The heap is conceptually divided into two main regions: <strong>raw memory</strong> and <strong>GC memory</strong>.
@@ -993,12 +995,12 @@ meaning that it leaks memory</p>
 <h2 id="heap-allocated-structs">Heap-allocated structs<a class="headerlink" href="#heap-allocated-structs" title="Permanent link">&para;</a></h2>
 <p>We can allocated structs "on the heap". This is a lower-level functionality which
 requires the use of <code>unsafe</code> functions; they can be allocated both in raw and GC memory:</p>
-<p>```python
-from unsafe import raw_ptr, raw_alloc</p>
-<p>p1: raw_ptr[Point] = raw_alloc<a href="1">Point</a>
-p1.x = 1
-p1.y = 2
-```</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">unsafe</span><span class="w"> </span><span class="kn">import</span> <span class="n">raw_ptr</span><span class="p">,</span> <span class="n">raw_alloc</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">p1</span><span class="p">:</span> <span class="n">raw_ptr</span><span class="p">[</span><span class="n">Point</span><span class="p">]</span> <span class="o">=</span> <span class="n">raw_alloc</span><span class="p">[</span><span class="n">Point</span><span class="p">](</span><span class="mi">1</span><span class="p">)</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="n">p1</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="mi">1</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="n">p1</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="mi">2</span>
+</span></code></pre></div>
 <p>Contrarily to their stack-allocated counterparts, heap-allocated structs are mutable.
 you should think of heap-allocated structs as the basic building blog for all
 higher-level types.</p>
@@ -1009,10 +1011,10 @@ allocated structs written in C.</p>
 <p><code>raw_alloc[T](n)</code> allocates an <strong>array</strong> of <code>T</code> on the heap. To allocate a single
 element, you just pass <code>n = 1</code>. For convenience, if <code>T</code> is a struct you can access it's
 fields without having to use <code>[0]</code>, exactly as in C:</p>
-<p><code>python
-def test(p: raw_ptr[Point]) -&gt; None:
-    assert p.x == p[0].x
-    assert p.y == p[0].y</code></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">test</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="n">raw_ptr</span><span class="p">[</span><span class="n">Point</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">x</span> <span class="o">==</span> <span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">x</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">y</span> <span class="o">==</span> <span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">y</span>
+</span></code></pre></div>
 <p>The low-level representation of pointers depends on the excecution mode.</p>
 <p>The interpreter keeps track of the address <strong>and the length</strong> of the allocated region,
 and checks for out-of-bounds access:</p>
@@ -1054,29 +1056,29 @@ difference between Python and C that we need to take into account in order to pr
 intuitive way to deal with structs.</p>
 <p>Consider the following example, using the <code>Rect</code> and <code>Point</code> structs defined above. It
 modifies a <strong>nested</strong> struct:</p>
-<p><code>python
-def test(r: raw_ptr[Rect]) -&gt; None:
-    r.a.x = 0</code></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">test</span><span class="p">(</span><span class="n">r</span><span class="p">:</span> <span class="n">raw_ptr</span><span class="p">[</span><span class="n">Rect</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    <span class="n">r</span><span class="o">.</span><span class="n">a</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="mi">0</span>
+</span></code></pre></div>
 <p>In Python (and thus SPy) the above expression decomposes to:</p>
-<p><code>python
-tmp = r.a
-tmp.x = 0</code></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="n">tmp</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">a</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="n">tmp</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="mi">0</span>
+</span></code></pre></div>
 <p>or, more explicitly:</p>
-<p><code>python
-tmp = getattr(r, "a")
-setattr(tmp, "x", 0)</code></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="n">tmp</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">)</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="nb">setattr</span><span class="p">(</span><span class="n">tmp</span><span class="p">,</span> <span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+</span></code></pre></div>
 <p>The naive implementation of <code>r.a</code> would be to return a <em>copy</em> of the <code>Point</code> but this
 means that <code>tmp.x</code> would modify the copy, not the original.</p>
 <p>To solve the problem, we return a <strong>reference</strong> instead:</p>
-<p><code>python
-tmp: raw_ref[Point] = r.a
-tmp.x = 0</code></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="n">tmp</span><span class="p">:</span> <span class="n">raw_ref</span><span class="p">[</span><span class="n">Point</span><span class="p">]</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">a</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="n">tmp</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="mi">0</span>
+</span></code></pre></div>
 <p>Contrarily to pointers, references cannot be indexed and cannot be <code>NULL</code>. Moreover, a
 <code>raw_ref[T]</code> can be automatically converted into a <code>T</code>. E.g. consider the following:</p>
-<p><code>python
-def foo(r: raw_ptr[Rect]) -&gt; None:
-    r2: Rect = r   # ERROR: cannot convert raw_ptr[Rect] to Rect
-    p: Point = r.a  # works: r.a is raw_ref[Point], and it's converted to a Point</code></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">foo</span><span class="p">(</span><span class="n">r</span><span class="p">:</span> <span class="n">raw_ptr</span><span class="p">[</span><span class="n">Rect</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>    <span class="n">r2</span><span class="p">:</span> <span class="n">Rect</span> <span class="o">=</span> <span class="n">r</span>   <span class="c1"># ERROR: cannot convert raw_ptr[Rect] to Rect</span>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>    <span class="n">p</span><span class="p">:</span> <span class="n">Point</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">a</span>  <span class="c1"># works: r.a is raw_ref[Point], and it&#39;s converted to a Point</span>
+</span></code></pre></div>
 <p>In the C backend, <code>raw_ref[T]</code> is implemented in the exact same way as <code>raw_ptr[T]</code>.</p>
 
 

@@ -364,39 +364,6 @@
   
 </li>
       
-        <li class="md-nav__item">
-  <a href="#with-the-virtual-environment-active" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        with the virtual environment active
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#open-httplocalhost8000mylocalcopy-in-a-browser" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        open http://localhost:8000/mylocalcopy in a browser
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#open-httplocalhost8000mylocalcopy-in-a-browser_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        open http://localhost:8000/mylocalcopy in a browser
-      
-    </span>
-  </a>
-  
-</li>
-      
     </ul>
   
 </nav>
@@ -718,39 +685,6 @@
   
 </li>
       
-        <li class="md-nav__item">
-  <a href="#with-the-virtual-environment-active" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        with the virtual environment active
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#open-httplocalhost8000mylocalcopy-in-a-browser" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        open http://localhost:8000/mylocalcopy in a browser
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#open-httplocalhost8000mylocalcopy-in-a-browser_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        open http://localhost:8000/mylocalcopy in a browser
-      
-    </span>
-  </a>
-  
-</li>
-      
     </ul>
   
 </nav>
@@ -771,6 +705,8 @@
   
 
 
+  <h1>Contributing</h1>
+
 <h2 id="spy-source">SPy Source<a class="headerlink" href="#spy-source" title="Permanent link">&para;</a></h2>
 <p>For guidelines on setting up your machine to build and contribute to SPy, see <a href="https://github.com/spylang/spy/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a></p>
 <h2 id="documentation">Documentation<a class="headerlink" href="#documentation" title="Permanent link">&para;</a></h2>
@@ -780,21 +716,21 @@
 </div>
 <p>First, fork <a href="https://github.com/spylang/spy">the  SPy repo</a>, go to the project repo page and use the Fork button. This will create a copy of the repo, under your username (e.,g. <code>https://github.com/yourghname/spy</code>). (For more details on how to fork a repository see <a href="https://help.github.com/articles/fork-a-repo/">this guide</a>.</p>
 <p>Next, clone the repo to your machine:</p>
-<p><code>bash
-  git clone git@github.com:your-user-name/spy.git
-  cd spy</code></p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>git<span class="w"> </span>clone<span class="w"> </span>git@github.com:your-user-name/spy.git
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nb">cd</span><span class="w"> </span>spy
+</span></code></pre></div>
 <p>Create a virtual environment for your project, and install both the SPy dependencies and the docs-specific dependencies. Any package installer and virtual environment will work; here are a couple of options:</p>
 <div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">pip</label><label for="__tabbed_1_2">uv</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
-<p><code>bash
-python -m venv .venv
-source ./.venv/bin/activate # or similar for your flavor of shell
-python -m pip install .[docs]</code></p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>python<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>.venv
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nb">source</span><span class="w"> </span>./.venv/bin/activate<span class="w"> </span><span class="c1"># or similar for your flavor of shell</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>.<span class="o">[</span>docs<span class="o">]</span>
+</span></code></pre></div>
 </div>
 <div class="tabbed-block">
-<p><code>bash
-uv sync --group docs</code></p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>uv<span class="w"> </span>sync<span class="w"> </span>--group<span class="w"> </span>docs
+</span></code></pre></div>
 </div>
 </div>
 </div>
@@ -802,17 +738,15 @@ uv sync --group docs</code></p>
 <div class="tabbed-set tabbed-alternate" data-tabs="2:2"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">pip</label><label for="__tabbed_2_2">uv</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
-<p>```bash</p>
-<h1 id="with-the-virtual-environment-active">with the virtual environment active<a class="headerlink" href="#with-the-virtual-environment-active" title="Permanent link">&para;</a></h1>
-<p>mkdocs serve</p>
-<h1 id="open-httplocalhost8000mylocalcopy-in-a-browser">open http://localhost:8000/mylocalcopy in a browser<a class="headerlink" href="#open-httplocalhost8000mylocalcopy-in-a-browser" title="Permanent link">&para;</a></h1>
-<p>```</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># with the virtual environment active</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>mkdocs<span class="w"> </span>serve
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="c1"># open http://localhost:8000/mylocalcopy in a browser</span>
+</span></code></pre></div>
 </div>
 <div class="tabbed-block">
-<p>```bash
-uv run mkdocs serve</p>
-<h1 id="open-httplocalhost8000mylocalcopy-in-a-browser_1">open http://localhost:8000/mylocalcopy in a browser<a class="headerlink" href="#open-httplocalhost8000mylocalcopy-in-a-browser_1" title="Permanent link">&para;</a></h1>
-<p>```</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>uv<span class="w"> </span>run<span class="w"> </span>mkdocs<span class="w"> </span>serve
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="c1"># open http://localhost:8000/mylocalcopy in a browser</span>
+</span></code></pre></div>
 </div>
 </div>
 </div>
@@ -821,8 +755,8 @@ uv run mkdocs serve</p>
 <p>Some changes - like adding or moving files, or changes to configuration in <code>mkdocs.yml</code>, will not be visible immediately in the server preview. To see them, stop the server (ctl/cmd + c) and restart the live server using the commands above.</p>
 </div>
 <p>Create a new git branch to make changes on:</p>
-<p><code>bash
-  git checkout -b feature/your-change</code></p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>git<span class="w"> </span>checkout<span class="w"> </span>-b<span class="w"> </span>feature/your-change
+</span></code></pre></div>
 <p>At this point, you're ready to start writing and editing your contributions!</p>
 <div class="admonition note">
 <p class="admonition-title">Documentation Tools</p>
@@ -830,10 +764,10 @@ uv run mkdocs serve</p>
 <p>mkdocs' liveserver is more fully-featured than mike's, and is recommended for document previews. To view the versioned documents as they will be deployed, run <code>mike deploy testdocs &amp;&amp; mike serve</code>, then load localhost:8000/testdocs.</p>
 </div>
 <p>Once you're happy with your changes, add them to your git branch and push them to GitHub.</p>
-<p><code>bash
-  git add -A
-  git commit -m "Describe your change"
-  git push origin feature/your-change</code></p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="w">  </span>git<span class="w"> </span>add<span class="w"> </span>-A
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;Describe your change&quot;</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span>git<span class="w"> </span>push<span class="w"> </span>origin<span class="w"> </span>feature/your-change
+</span></code></pre></div>
 <p>Open a Pull Request on the <a href="https://github.com/spylang/spy">SPy GitHub page</a>.</p>
 <p>Once the pull request is open, a preview build of the documentation site with your changes will be generated automatically. Click on the generated link that appears in a comment on your PR, and give your documentation one final review to ensure everything still looks correct after it's been built in CI.</p>
 
