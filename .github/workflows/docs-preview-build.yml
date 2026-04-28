@@ -4,7 +4,6 @@ name: Build PR Docs Preview
 # and a trusted deployment step helps prevent a class of issues that allow 
 # secret exfiltration from a repo.
 # See https://securitylab.github.com/resources/github-actions-preventing-pwn-requests/ 
-# for context
 permissions:
   contents: read
 
