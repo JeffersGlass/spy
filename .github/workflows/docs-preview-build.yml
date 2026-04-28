@@ -47,7 +47,7 @@ jobs:
       - name: Upload preview artifact
         uses: actions/upload-artifact@v4
         with:
-          name: pr-preview-docs-${{ github.event.pull_request.number }}
+          name: pr-preview-docs-${{ github.event.number }}
           path: docs/site
           if-no-files-found: error
           retention-days: 7
