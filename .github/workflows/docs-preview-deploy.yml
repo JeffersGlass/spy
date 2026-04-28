@@ -4,7 +4,7 @@ name: Deploy PR Docs Preview
 #
 on:
   workflow_run:
-    workflows: ["Build PR Docs Preview"]
+    workflows: [Build PR Docs Preview]
     types: [completed]
 
 permissions:
