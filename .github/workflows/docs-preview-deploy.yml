@@ -1,10 +1,10 @@
 name: Deploy PR Docs Preview
 #
-# Triggers after 'PR Build (Build PR Docs Preview)' completes successfully.
+# Triggers after 'Build PR Docs Preview' completes successfully.
 #
 on:
   workflow_run:
-    workflows: ["Deploy PR Docs Preview)"]
+    workflows: ["Build PR Docs Preview"]
     types: [completed]
 
 permissions:
