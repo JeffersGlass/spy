@@ -1,4 +1,12 @@
-name: Preview Docs Builds
+name: Build PR Docs Preview
+
+# Splitting the preview docs build into an (untrusted) build step (this one)
+# and a trusted deployment step helps prevent a class of issues that allow 
+# secret exfiltration from a repo.
+# See https://securitylab.github.com/resources/github-actions-preventing-pwn-requests/ 
+# for context
+permissions:
+  contents: read
 
 # When a new udpate is made to this PR, cancel any still-running builds from previous pushes
 concurrency:
@@ -15,7 +23,6 @@ on:
       - synchronize
       - reopened
   workflow_dispatch:
-    
 
 jobs:
   build-preview:
@@ -34,14 +41,14 @@ jobs:
         run: |
            pip install .[docs]
 
-      - name: Build and deploy mkdocs
+      - name: Build and mkdocs
         run: |
           mkdocs build --config-file docs/mkdocs.yml --site-dir ./site -v
           
-      - name: Deploy PR Preview
-        id: deploy-preview-site
-        uses: rossjrw/pr-preview-action@v1.8.1
+      - name: Upload preview artifact
+        uses: actions/upload-artifact@v4
         with:
-          source-dir: ./docs/site
-          preview-branch: gh-pages
-          qr-code: false
+          name: pr-preview-docs-${{ env.PR_NUMBER }}
+          path: _site
+          if-no-files-found: error
+          retention-days: 7
