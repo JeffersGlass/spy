@@ -49,6 +49,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: pr-preview-docs-${{ env.PR_NUMBER }}
-          path: _site
+          path: docs/site
           if-no-files-found: error
           retention-days: 7
