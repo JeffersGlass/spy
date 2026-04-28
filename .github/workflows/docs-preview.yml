@@ -9,7 +9,7 @@ on:
   pull_request:
     paths:
       - 'docs/**'
-      - '.github/workflows/docs*.yml'
+      - '.github/workflows/**'
     types:
       - opened
       - synchronize
