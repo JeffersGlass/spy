@@ -55,7 +55,7 @@ nav:
     - api_reference/python_builtins.md
   - Unsorted notes:
       - Low-level memory model: llmem.md
-  - Demo Category
+  - Demo Category:
     - demo_page.md
 
 # Example navigation structure with subsections:
