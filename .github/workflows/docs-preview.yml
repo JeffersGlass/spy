@@ -9,7 +9,7 @@ on:
   pull_request:
     paths:
       - 'docs/**'
-      - '.github/workflows/**'
+      - '.github/workflows/docs*'
     types:
       - opened
       - synchronize
@@ -41,11 +41,12 @@ jobs:
       - name: Upload a Build Artifact
         id: upload
         uses: actions/upload-artifact@v7.0.1
-        path: docs/site
-        if-no-files-found: error
-        retention-days: 15
-        compression-level: 0
-        include-hidden-files: true
+        with:
+          path: docs/site
+          if-no-files-found: error
+          retention-days: 15
+          compression-level: 0
+          include-hidden-files: true
 
       - name: Add PR Comment
         uses: mshick/add-pr-comment@v3.11.0
