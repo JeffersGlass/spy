@@ -76,8 +76,8 @@ jobs:
           number: ${{ steps.pr.outputs.pr_number }}
           header: pr-preview
           message: |
-            [PR Preview](https://jeffersglass.github.io/spy/pr-preview/pr-${{ steps.pr.outputs.pr_number }})
+            [View Documentation Preview](https://jeffersglass.github.io/spy/pr-preview/pr-${{ steps.pr.outputs.pr_number }})
             :---:
             Preview deployed for PR #${{ steps.pr.outputs.pr_number }}.
-            ${{ steps.ts.outputs.utc }}
+            Last Updated: ${{ steps.ts.outputs.utc }}
             <!-- Sticky Pull Request Commentpr-preview -->
