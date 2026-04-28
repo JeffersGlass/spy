@@ -51,8 +51,8 @@ jobs:
       - name: Add PR Comment
         uses: mshick/add-pr-comment@v3.11.0
         with:
-        message: |
-           Documentation preview published at https://html-preview.github.io/?url=${{ steps.uploda.outputs.artifact-url }} :disguised_face:
+          message: |
+            Documentation preview published at https://html-preview.github.io/?url=${{ steps.uploda.outputs.artifact-url }} :disguised_face:
           
       # - name: Deploy PR Preview
       #  id: deploy-preview-site
