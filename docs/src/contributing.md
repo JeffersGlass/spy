@@ -35,17 +35,17 @@ Build a copy of the docs locally, and start a live server to view the current st
 === "pip"
     ```bash
     # with the virtual environment active
-    mkdocs serve
+    properdocs serve
     # open http://localhost:8000/mylocalcopy in a browser
     ```
 === "uv"
     ```bash
-    uv run mkdocs serve
+    uv run properdocs serve
     # open http://localhost:8000/mylocalcopy in a browser
     ```
 
 /// tip | Updating Docs
-Some changes - like adding or moving files, or changes to configuration in `mkdocs.yml`, will not be visible immediately in the server preview. To see them, stop the server (ctl/cmd + c) and restart the live server using the commands above.
+Some changes - like adding or moving files, or changes to configuration in `properdocs.yml`, will not be visible immediately in the server preview. To see them, stop the server (ctl/cmd + c) and restart the live server using the commands above.
 ///
 
 Create a new git branch to make changes on:
@@ -57,9 +57,9 @@ Create a new git branch to make changes on:
 At this point, you're ready to start writing and editing your contributions!
 
 /// note | Documentation Tools
-SPy uses [mkdocs](https://www.mkdocs.org/) as its documentation builder with the [material for mkdocs theme](https://squidfunk.github.io/mkdocs-material/), and [mike](https://github.com/jimporter/mike) to manage docs versioning. See their pages for additional information on formatting and options.
+SPy uses [properdocs](https://properdocs.org/) (an [up-to-date](https://github.com/orgs/ProperDocs/discussions/33) fork of [mkdocs](https://www.mkdocs.org/)) as its documentation builder with the [material for mkdocs theme](https://squidfunk.github.io/mkdocs-material/), and [mike](https://github.com/jimporter/mike) to manage docs versioning. See their pages for additional information on formatting and options.
 
-mkdocs' liveserver is more fully-featured than mike's, and is recommended for document previews. To view the versioned documents as they will be deployed, run `mike deploy testdocs && mike serve`, then load localhost:8000/testdocs.
+properdocs' liveserver is more fully-featured than mike's, and is recommended for document previews. To view the versioned documents as they will be deployed, run `mike deploy testdocs && mike serve`, then load localhost:8000/testdocs.
 ///
 
 Once you're happy with your changes, add them to your git branch and push them to GitHub.

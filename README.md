@@ -230,14 +230,14 @@ transparently load `libspy.wasm` in either case.
 
 All documentation files are in `docs/src`. To run dev server for document, please follow;
 
-*you have to install `mkdocs` first
+*you have to install `ProperDocs` and other plugins first
 
 ```pip install -e ".[docs]" ```
 
 Then following below commands
 
 1) ```cd ./docs```
-2) ```mkdocs serve```
+2) ```properdocs serve```
 
 ## Contribution guidelines
 
