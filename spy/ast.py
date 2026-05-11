@@ -315,6 +315,20 @@ class Auto(Expr):
 
 
 @astnode
+class FormattedValue(Expr):
+    precednece = 100
+    value = Expr
+    conversion = -1
+    format_spec: "JoinedStr"
+
+
+@astnode
+class JoinedStr(Expr):
+    precedence = 100
+    values: list[FormattedValue, "Constant"]
+
+
+@astnode
 class Constant(Expr):
     precedence = 100  # the highest
     value: object

@@ -849,3 +849,8 @@ class Parser:
         )
 
         return r
+
+    def from_py_expr_JoinedStr(self, py_node: py_ast.JoinedStr) -> spy.ast.JoinedStr:
+        return spy.ast.JoinedStr(
+            py_node.loc, [self.from_py_expr(value) for value in py_node.values]
+        )
