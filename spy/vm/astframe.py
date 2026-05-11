@@ -856,6 +856,23 @@ class AbstractFrame:
         assert w_value is not None
         return W_MetaArg.from_w_obj(self.vm, w_value)
 
+    def eval_expr_JoinedStr(self, joined_str: ast.JoinedStr) -> W_MetaArg:
+        result = ""
+        for v in joined_str.values:
+            assert type(v) in (ast.FormattedValue, ast.StrConst)
+
+            if isinstance(v, ast.FormattedValue):
+                raise SPyError.simple(
+                    "Not Implemented",
+                    "Only constants are supported in f-strings",
+                    "expected `str`",
+                    joined_str.loc,
+                )
+
+            result += v.value
+        w_val = self.vm.wrap(result)
+        return W_MetaArg(self.vm, "blue", B.w_str, w_val, joined_str.loc)
+
     def eval_expr_Name(self, name: ast.Name) -> W_MetaArg:
         # see the comment in __init__ about specialized_names
         specialized = self.specialized_names.get(name)
