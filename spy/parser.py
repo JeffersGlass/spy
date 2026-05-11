@@ -859,5 +859,8 @@ class Parser:
         self, py_node: py_ast.FormattedValue
     ) -> spy.ast.FormattedValue:
         return spy.ast.FormattedValue(
-            py_node.loc, py_node.value, py_node.conversion, py_node.format_spec
+            py_node.loc,
+            self.from_py_expr(py_node.value),
+            py_node.conversion,
+            py_node.format_spec,
         )

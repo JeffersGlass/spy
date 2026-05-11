@@ -1,3 +1,4 @@
+import ast as py_ast
 from contextlib import contextmanager
 from types import NoneType
 from typing import TYPE_CHECKING, Iterator, Optional, Sequence
@@ -863,8 +864,7 @@ class AbstractFrame:
                 e = self.eval_expr(v.value)
                 wam = self.vm.str_wam(e, loc=v.loc)
                 result += self.vm.unwrap_str(wam.w_val)
-
-            elif isinstance(v, ast.StrConst):
+            elif isinstance(v, (ast.StrConst, ast.Constant)):
                 result += v.value
             else:
                 raise TypeError(
