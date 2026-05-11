@@ -859,18 +859,18 @@ class AbstractFrame:
     def eval_expr_JoinedStr(self, joined_str: ast.JoinedStr) -> W_MetaArg:
         result = ""
         for v in joined_str.values:
-            assert type(v) in (ast.FormattedValue, ast.StrConst)
-
-            # For a first implementation, don't try to eval f-strings
             if isinstance(v, ast.FormattedValue):
-                raise SPyError.simple(
-                    "W_WIP",
-                    "Only constants are supported in f-strings",
-                    "expected `str`",
-                    joined_str.loc,
+                e = self.eval_expr(v.value)
+                wam = self.vm.str_wam(e, loc=v.loc)
+                result += self.vm.unwrap_str(wam.w_val)
+
+            elif isinstance(v, ast.StrConst):
+                result += v.value
+            else:
+                raise TypeError(
+                    f"Values in JoinedStr should only be FormattedValue or StrConst, got {type(v)}"
                 )
 
-            result += v.value
         w_val = self.vm.wrap(result)
         return W_MetaArg(self.vm, "blue", B.w_str, w_val, joined_str.loc)
 
