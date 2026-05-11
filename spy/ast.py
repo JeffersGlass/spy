@@ -316,9 +316,9 @@ class Auto(Expr):
 
 @astnode
 class FormattedValue(Expr):
-    precednece = 100
-    value = Expr
-    conversion = -1
+    precedence = 100
+    value: Expr
+    conversion: int
     format_spec: "JoinedStr"
 
 

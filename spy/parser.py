@@ -854,3 +854,10 @@ class Parser:
         return spy.ast.JoinedStr(
             py_node.loc, [self.from_py_expr(value) for value in py_node.values]
         )
+
+    def from_py_expr_FormattedValue(
+        self, py_node: py_ast.FormattedValue
+    ) -> spy.ast.FormattedValue:
+        return spy.ast.FormattedValue(
+            py_node.loc, py_node.value, py_node.conversion, py_node.format_spec
+        )

@@ -20,7 +20,7 @@ from spy.vm.modules.types import TYPES
 from spy.vm.object import W_Object, W_Type
 from spy.vm.opimpl import W_OpImpl
 from spy.vm.opspec import W_MetaArg
-from spy.vm.primitive import W_Bool
+from spy.vm.primitive import W_Bool, W_NotImplementedType
 from spy.vm.struct import W_StructType
 from spy.vm.typechecker import maybe_plural
 
@@ -855,6 +855,24 @@ class AbstractFrame:
         w_value = self.vm.lookup_global(const.fqn)
         assert w_value is not None
         return W_MetaArg.from_w_obj(self.vm, w_value)
+
+    def eval_expr_JoinedStr(self, joined_str: ast.JoinedStr) -> W_MetaArg:
+        result = ""
+        for v in joined_str.values:
+            assert type(v) in (ast.FormattedValue, ast.StrConst)
+
+            # For a first implementation, don't try to eval f-strings
+            if isinstance(v, ast.FormattedValue):
+                raise SPyError.simple(
+                    "W_WIP",
+                    "Only constants are supported in f-strings",
+                    "expected `str`",
+                    joined_str.loc,
+                )
+
+            result += v.value
+        w_val = self.vm.wrap(result)
+        return W_MetaArg(self.vm, "blue", B.w_str, w_val, joined_str.loc)
 
     def eval_expr_Name(self, name: ast.Name) -> W_MetaArg:
         # see the comment in __init__ about specialized_names
