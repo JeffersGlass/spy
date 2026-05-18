@@ -316,3 +316,48 @@ def w_setattr(
 BUILTINS.add("int", BUILTINS.w_i32)
 BUILTINS.add("float", BUILTINS.w_f64)
 BUILTINS.add("complex", BUILTINS.w_complex128)
+
+
+@BUILTINS.builtin_func(color="red")
+def w_exec(vm: "SPyVM", src: W_Str) -> W_Object:
+    import tempfile
+    from pathlib import Path
+
+    from spy.analyze.importing import ImportAnalyzer
+    from spy.analyze.scope import ScopeAnalyzer
+    from spy.cli._runners import execute_spy_main
+    from spy.parser import Parser
+    from spy.vm.modframe import ModFrame
+
+    if TYPE_CHECKING:
+        from spy.ast import Module
+
+    EXEC_MOD_NAME = "<exec>"
+
+    assert vm._w_main is not None, "exec() should not think it's the main module"
+
+    src_str = src.spy_unwrap(vm)
+    if not src_str:
+        return B.w_None
+
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".spy", dir=".", delete=False, delete_on_close=True
+    ) as f:
+        name = f.name
+        f.write(src_str)
+
+    importer = ImportAnalyzer(vm, name, use_spyc=False)
+    vm.path.append(str(Path(f.name).parent))
+    breakpoint()
+    importer.parse_all()
+    importer.import_all()
+    breakpoint()
+    f.close()
+    w_mod = vm.modules_w[EXEC_MOD_NAME]
+
+    # fqn = FQN(EXEC_MOD_NAME)
+    # modframe = ModFrame(vm, fqn, mod)
+    # w_mod = modframe.run()
+    breakpoint()
+
+    return B.w_None

@@ -230,6 +230,7 @@ class ImportAnalyzer:
             else:
                 # we couldn't find .spy for this modname
                 self.mods[modname] = None
+                print(f"Could not find module {modname}")
 
     def parse_one(self, modname: str, spyfile: py.path.local) -> ast.Module:
         """

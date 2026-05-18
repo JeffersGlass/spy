@@ -1158,6 +1158,9 @@ class AbstractFrame:
         args_wam = [self.eval_expr(arg) for arg in call.args]
         w_opimpl = self.vm.call_OP(call.loc, OP.w_CALL, [wam_func] + args_wam)
 
+        if wam_func.w_val is B.w_exec:
+            ...  # args_wam = args_wam +
+
         # special case getattr, hasattr and setattr: if we arrive at this point it means that the
         # call typed correctly (right number, type and color of arguments). The returned
         # opimpl is not supposed to be executed, see builtins.w_getattr.

@@ -83,10 +83,14 @@ def execute_spy_main(
     redshift: bool = False,
     _timeit: bool = False,
 ) -> None:
-    w_main = w_mod.getattr_maybe("main")
-    if w_main is None:
-        print("Cannot find function main()")
-        return
+    if vm._w_main:
+        w_main = vm._w_main
+    else:
+        w_main = w_mod.getattr_maybe("main")
+        if w_main is None:
+            print("Cannot find function main()")
+            return
+        vm._w_main = w_main
 
     assert isinstance(w_main, W_ASTFunc)
     w_restype, has_args = vm.typecheck_main(w_main)

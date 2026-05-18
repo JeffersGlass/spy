@@ -106,6 +106,7 @@ class SPyVM:
     globals_w: dict[FQN, W_Object]
     irtags: dict[FQN, IRTag]
     modules_w: dict[str, W_Module]
+    _w_main: W_Module
     # Maps a real FQN to a display FQN used only for human-readable rendering.
     # The display FQN is NOT registered in globals_w and must not be used for lookup.
     fqn_human_aliases: dict[FQN, FQN]
@@ -133,6 +134,7 @@ class SPyVM:
         self.emit_warning = lambda err: None
         self.ast_color_map = None  # By default, don't keep track of expr colors.
         self.robust_import_caching = False  # By default, raise cache errors
+        self._w_main = None
         self.make_module(BUILTINS)
         self.make_module(OPERATOR)
         self.make_module(TYPES)
