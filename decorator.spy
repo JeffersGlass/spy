@@ -1,0 +1,17 @@
+@blue
+def decorator(f: dynamic) -> dynamic:
+    def inner() -> dynamic:
+        print("Starting function")
+        val = f()
+        print("Ending function")
+        return val
+    return inner
+
+@decorator
+def foo() -> None:
+    x = "hello"
+    exec('x = x * 2')
+    print(x)
+
+def main() -> None:
+    foo()

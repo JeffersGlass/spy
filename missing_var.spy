@@ -1,0 +1,7 @@
+def foo() -> None:
+    x = "hello"
+    exec('y = x * 2')
+    print(y)
+
+def main() -> None:
+    foo()

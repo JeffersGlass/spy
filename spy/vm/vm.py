@@ -7,6 +7,7 @@ import fixedint
 import py.path
 
 from spy import ROOT, ast, libspy
+from spy.analyze.importing import ImportAnalyzer
 from spy.analyze.symtable import Color, ImportRef, SymTable, maybe_blue
 from spy.ast import Color, FuncKind
 from spy.doppler import ErrorMode, redshift
@@ -16,6 +17,7 @@ from spy.libspy import LLSPyInstance
 from spy.linearize import linearize
 from spy.location import Loc
 from spy.util import func_equals
+from spy.vm.astframe import AbstractFrame
 from spy.vm.b import B
 from spy.vm.bluecache import BlueCache
 from spy.vm.builtin import make_builtin_func
@@ -171,6 +173,95 @@ class SPyVM:
         importer.import_all()
         w_mod = self.modules_w[modname]
         return w_mod
+
+    def exec_source(
+        self,
+        source: str,
+        frame: Optional["AbstractFrame"] = None,
+        *,
+        filename: Optional[str] = None,
+    ) -> None:
+        """
+        Execute a piece of SPy source code.
+
+        If `frame` is provided, attempt to execute the parsed statements in
+        that frame's namespace (mutating its locals/globals as needed). If no
+        frame is provided, fall back to executing the code in an isolated
+        temporary module (legacy behavior).
+        """
+        # local imports to avoid circular deps
+        from spy import ast as spyast
+        from spy.analyze.scope import ScopeAnalyzer
+        from spy.magic_py_parse import magic_py_parse
+        from spy.parser import Parser
+        from spy.util import record_src_in_linecache
+
+        if not source:
+            return
+
+        if filename is None:
+            filename = record_src_in_linecache(source, name="exec")
+
+        # Parse Python AST first, then convert each stmt to SPy AST
+        py_mod = magic_py_parse(source, filename)
+        py_mod.compute_all_locs(filename)
+        parser = Parser(source, filename)
+        stmts: list[spyast.Stmt] = [parser.from_py_stmt(s) for s in py_mod.body]
+
+        # If a target frame is provided, analyze the stmts to declare any new
+        # symbols and then execute them interactively in that frame.
+        if frame is not None:
+            # Build a minimal analyzer so we can collect symbol defs for the
+            # exec block. We push a fresh inner scope and run declare/flatten on
+            # the statements so that implicit declarations (assignments) are
+            # recorded. Then merge those symbols into the target frame's
+            # symtable before executing the stmts interactively.
+            from spy.location import Loc
+
+            mod = spyast.Module(
+                loc=Loc.fake(), filename=filename, docstring="<exec>", decls=[]
+            )
+            analyzer = ScopeAnalyzer(frame.ns.modname, mod)
+
+            inner = analyzer.new_SymTable("__exec__", frame.symtable.color, "function")
+            analyzer.push_scope(inner)
+            for s in stmts:
+                analyzer.declare(s)
+            for s in stmts:
+                analyzer.flatten(s)
+
+            # merge collected symbols into the frame.symtable where missing
+            for name, sym in inner._symbols.items():
+                if frame.symtable.lookup_maybe(name) is None:
+                    frame.symtable._symbols[name] = sym
+
+            # execute the statements in interactive mode so that dynamic lookups
+            # are allowed (similar to SPdb interactive eval)
+            with frame.interactive():
+                for s in stmts:
+                    frame.exec_stmt(s)
+
+            return
+
+        # Fallback: execute in a temporary module (legacy path)
+        # Reuse existing importer-based approach to ensure imports/vardefs work
+        # as before.
+        import tempfile
+        from pathlib import Path
+
+        from spy.analyze.importing import ImportAnalyzer
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".spy", dir=".", delete=False
+        ) as f:
+            name = f.name
+            f.write(source)
+
+        importer = ImportAnalyzer(self, str(Path(name).stem), use_spyc=False)
+        self.path.append(str(Path(name).parent))
+        importer.parse_all()
+        importer.import_all()
+        return
 
     def find_file_on_path(
         self, modname: str, allow_py_files: bool = False
