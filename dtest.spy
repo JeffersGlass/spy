@@ -7,5 +7,5 @@ def main() -> None:
         price: int
 
     const item2 = dataclass(item)
-    i = item2("apple", 5)
+    i = item2('apple', '5')
     print(i.name)

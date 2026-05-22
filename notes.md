@@ -7,3 +7,5 @@ Look at `vm.exec_source()`
 
 5/22 - Changing `def declare_ClassDef(self, classdef: ast.ClassDef)` to be "var" type instead of const solves this issue, except that then `item` is red but dataclass is a blue...
     - Update - classdefs can be const but we just can't reuse a name... but using a new name works with classdefs as const!
+
+5/22 May need to store locals to make @struct classdefs work in exec. See current structure of `d1.spy` and `dtest.spy`
