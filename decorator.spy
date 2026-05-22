@@ -1,5 +1,6 @@
 @blue
 def decorator(f: dynamic) -> dynamic:
+    @blue
     def inner() -> dynamic:
         print("Starting function")
         val = f()

@@ -1,5 +1,6 @@
 @blue
 def decorator(f: dynamic) -> dynamic:
+    @blue
     def inner() -> dynamic:
         print("Starting function")
         val = f()
@@ -7,13 +8,16 @@ def decorator(f: dynamic) -> dynamic:
         return val
     return inner
 
+@blue
+def get_const():
+    return "5"
+
 @decorator
 def foo() -> None:
     x = "hello"
     exec("""\
 def bar() -> int:
-    return 2
-    """)
+    return """ + get_const())
     print(bar())
 
 def main() -> None:
