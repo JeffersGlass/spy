@@ -8,7 +8,7 @@ import py.path
 
 from spy import ROOT, ast, libspy
 from spy.analyze.importing import ImportAnalyzer
-from spy.analyze.symtable import Color, ImportRef, SymTable, maybe_blue
+from spy.analyze.symtable import Color, ImportRef, Symbol, SymTable, maybe_blue
 from spy.ast import Color, FuncKind
 from spy.doppler import ErrorMode, redshift
 from spy.errors import WIP, SPyError
@@ -232,7 +232,8 @@ class SPyVM:
 
             # merge collected symbols into the frame.symtable where missing
             for name, sym in inner._symbols.items():
-                if frame.symtable.lookup_maybe(name) is None:
+                l: Symbol | None = frame.symtable.lookup_maybe(name)
+                if l is None or l.storage == "NameError":
                     frame.symtable._symbols[name] = sym
 
             # execute the statements in interactive mode so that dynamic lookups
