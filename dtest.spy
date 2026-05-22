@@ -1,0 +1,10 @@
+from d1 import dataclass
+
+@struct
+class item():
+    name: str
+    price: int
+
+def main() -> None:
+    i = item("apple", 5)
+    print(i)

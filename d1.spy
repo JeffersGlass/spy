@@ -1,0 +1,3 @@
+@blue
+def dataclass(f):
+    return f
