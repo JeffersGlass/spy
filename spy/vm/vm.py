@@ -240,6 +240,9 @@ class SPyVM:
             # are allowed (similar to SPdb interactive eval)
             with frame.interactive():
                 for s in stmts:
+                    if isinstance(s, ast.ClassDef):
+                        frame.fwdecl_ClassDef(s)
+                for s in stmts:
                     frame.exec_stmt(s)
 
             return

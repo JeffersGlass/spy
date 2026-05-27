@@ -117,7 +117,7 @@ class SPdb(cmd.Cmd):
         print("***", msg, file=self.stdout)
 
     def default(self, arg: str) -> None:
-        return self.do_print(arg)
+        self.vm.exec_source(arg, frame=self.get_curframe().spyframe)
 
     def do_quit(self, arg: str) -> None:
         raise SPyError("W_SPdbQuit", "")
