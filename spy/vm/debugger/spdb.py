@@ -12,6 +12,7 @@ from spy.doppler import DopplerFrame
 from spy.errfmt import ErrorFormatter
 from spy.errors import SPyError
 from spy.location import Loc
+from spy.magic_py_parse import EvalParseException
 from spy.parser import Parser
 from spy.textbuilder import ColorFormatter
 from spy.util import record_src_in_linecache
@@ -118,6 +119,18 @@ class SPdb(cmd.Cmd):
 
     def default(self, arg: str) -> None:
         self.vm.exec_source(arg, frame=self.get_curframe().spyframe)
+
+        # If the source is an expression, we need to print its value
+        null_result = object()
+        result = null_result
+        filename = record_src_in_linecache(arg, name="spdb-eval")
+        parser = Parser(arg, filename)
+        try:
+            parser.parse_single_expr()
+        except EvalParseException:
+            pass
+        else:
+            self.do_print(arg)
 
     def do_quit(self, arg: str) -> None:
         raise SPyError("W_SPdbQuit", "")

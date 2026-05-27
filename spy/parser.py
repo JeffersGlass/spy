@@ -87,6 +87,15 @@ class Parser:
             )
         return self.from_py_stmt(py_mod.body[0])
 
+    def parse_single_expr(self) -> spy.ast.Expr:
+        """
+        Parse the source code assuming it contains a single expr. Used by SPdb.
+        """
+        py_expression = magic_py_parse(self.src, self.filename, mode="eval")
+        assert isinstance(py_expression, py_ast.Expression)
+        py_expression.compute_all_locs(self.filename)
+        return self.from_py_expr(py_expression.body)
+
     def error(self, primary: str, secondary: str, loc: Loc) -> NoReturn:
         raise SPyError.simple("W_ParseError", primary, secondary, loc)
 

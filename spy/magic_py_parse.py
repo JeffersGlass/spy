@@ -50,19 +50,27 @@ class LocInfo:
     end_col_offset: int
 
 
-def magic_py_parse(src: str, filename: str = "<string>") -> py_ast.Module:
+class EvalParseException(BaseException): ...
+
+
+def magic_py_parse(
+    src: str, filename: str = "<string>", mode="exec"
+) -> py_ast.Module | py_ast.Expr:
     """
     Like ast.parse, but supports the new "var" and "const" syntax. See the module
     docstring for more info.
     """
     src2, varkind_locs = preprocess(src, filename)
     try:
-        py_mod = py_ast.parse(src2, filename=filename)
+        py_mod = py_ast.parse(src2, filename=filename, mode=mode)
     except SyntaxError as e:
         lineno = e.lineno or 1
         loc = Loc(filename, lineno, lineno, 0, -1)
         # this happens e.g. if we have an incomplete `if`, see test_magic_py_parse_error
-        raise SPyError.simple("W_ParseError", e.msg, "", loc)
+        if mode == "exec":
+            raise SPyError.simple("W_ParseError", e.msg, "", loc)
+        else:
+            raise EvalParseException(f"Could not parse {src} in mode {mode}")
 
     for node in py_ast.walk(py_mod):
         if isinstance(node, py_ast.Name):
