@@ -72,11 +72,13 @@ class Parser:
         py_mod.compute_all_locs(self.filename)
         return self.from_py_Module(py_mod)
 
-    def parse_single_stmt(self) -> spy.ast.Stmt:
+    def parse_single_stmt(self, raise_as_python=False) -> spy.ast.Stmt:
         """
         Parse the source code assuming it contains a single stmt. Used by SPdb.
         """
-        py_mod = magic_py_parse(self.src, self.filename)
+        py_mod = magic_py_parse(
+            self.src, self.filename, raise_as_python=raise_as_python
+        )
         assert isinstance(py_mod, py_ast.Module)
         py_mod.compute_all_locs(self.filename)
         if len(py_mod.body) > 1:
@@ -91,7 +93,9 @@ class Parser:
         """
         Parse the source code assuming it contains a single expr. Used by SPdb.
         """
-        py_expression = magic_py_parse(self.src, self.filename, mode="eval")
+        py_expression = magic_py_parse(
+            self.src, self.filename, mode="eval", raise_as_python=True
+        )
         assert isinstance(py_expression, py_ast.Expression)
         py_expression.compute_all_locs(self.filename)
         return self.from_py_expr(py_expression.body)

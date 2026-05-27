@@ -1,0 +1,11 @@
+# Code to test the repl with
+
+def main() -> None:
+    x = 1
+
+    def foo() -> int:
+        return 42
+    
+    breakpoint()
+
+    print(x)

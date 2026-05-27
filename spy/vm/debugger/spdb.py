@@ -5,6 +5,7 @@ The SPy debugger ("spy pdb")
 import cmd
 import pdb
 import sys
+from contextlib import contextmanager
 from typing import IO, TYPE_CHECKING, Annotated, Any, Literal, Optional
 
 from spy import ast
@@ -12,7 +13,7 @@ from spy.doppler import DopplerFrame
 from spy.errfmt import ErrorFormatter
 from spy.errors import SPyError
 from spy.location import Loc
-from spy.magic_py_parse import EvalParseException
+from spy.magic_py_parse import PythonParseException
 from spy.parser import Parser
 from spy.textbuilder import ColorFormatter
 from spy.util import record_src_in_linecache
@@ -62,6 +63,70 @@ def print_wam(
     print(s, file=file)
 
 
+class SPdbInput:
+    def __init__(self, spdb_instance, stdin, stdout, prompt):
+        import os
+
+        import _pyrepl.readline
+
+        self.spdb_instance = spdb_instance
+        self.prompt = prompt
+        if not (os.isatty(stdin.fileno())):
+            raise ValueError("stdin is not a TTY")
+        self.readline_wrapper = _pyrepl.readline._ReadlineWrapper(
+            f_in=stdin.fileno(),
+            f_out=stdout.fileno(),
+            config=_pyrepl.readline.ReadlineConfig(
+                completer_delims=frozenset(" \t\n`@#%^&*()=+[{]}\\|;:'\",<>?")
+            ),
+        )
+
+    def readline(self):
+        def more_lines(text: str) -> bool:
+            if text.strip() == "\x1a":
+                # Ctrl + Z raises EOFError to quit pdb
+                # This is similarly handled in simple_interact.py
+                raise EOFError
+            cmd, _, line = self.spdb_instance.parseline(text)
+            if not line or not cmd:
+                return False
+            func = getattr(self.pdb_instance, "do_" + cmd, None)
+            if func is not None:
+                return False
+            return self.more_lines(text)
+
+        try:
+            multiline = (
+                self.readline_wrapper.multiline_input(
+                    more_lines, self.prompt, "... " + " " * (len(self.prompt) - 4)
+                )
+                + "\n"
+            )
+            return multiline
+        except EOFError:
+            return "EOF"
+
+    @staticmethod
+    def more_lines(text: str) -> bool:
+        src = text.rstrip(" \t")
+        n = len(src)
+        if n > 0 and text[n - 1] == "\n":
+            text = src
+        try:
+            filename = record_src_in_linecache(text, name="spdb-eval")
+            parser = Parser(text, filename)
+            stmt = parser.parse_single_stmt(raise_as_python=True)
+        except PythonParseException:
+            lines = text.splitlines(keepends=True)
+            if len(lines) == 1:
+                return False
+            last = lines[-1]
+            return (
+                last.startswith((" ", "\t")) or last.strip() != ""
+            ) and not last.endswith("\n")
+        return len(stmt.body) > 0
+
+
 class SPdb(cmd.Cmd):
     prompt = "(spdb🥸) "
 
@@ -75,8 +140,19 @@ class SPdb(cmd.Cmd):
         use_colors: bool = True,
     ) -> None:
         super().__init__(stdin=stdin, stdout=stdout)
-        if stdin is not None:
+        if stdin is not None and stdin is not sys.stdin:
             self.use_rawinput = False
+
+        self._raw_stdin = self.stdin
+        self._raw_stdout = self.stdout
+        self.repl_input = None
+        if stdin is None:
+            try:
+                self.repl_input = SPdbInput(self, self.stdin, self.stdout, self.prompt)
+                self.stdin = self.repl_input
+            except Exception:
+                pass
+
         self.use_colors = use_colors
         self.vm = vm
         self.w_tb = w_tb
@@ -127,7 +203,7 @@ class SPdb(cmd.Cmd):
         parser = Parser(arg, filename)
         try:
             parser.parse_single_expr()
-        except EvalParseException:
+        except PythonParseException:
             pass
         else:
             self.do_print(arg)
@@ -249,3 +325,28 @@ class SPdb(cmd.Cmd):
             self.error(f"{etype}: {message}")
 
     do_p = do_print
+
+    @contextmanager
+    def _replace_attribute(self, attrs):
+        original_attrs = {}
+        for attr, value in attrs.items():
+            original_attrs[attr] = getattr(self, attr)
+            setattr(self, attr, value)
+        try:
+            yield
+        finally:
+            for attr, value in original_attrs.items():
+                setattr(self, attr, value)
+
+    @contextmanager
+    def _maybe_use_pyrepl_as_stdin(self):
+        if self.pyrepl_input is None:
+            yield
+            return
+
+        with self._replace_attribute(
+            {
+                "stdin": self.pyrepl_input,
+            }
+        ):
+            yield

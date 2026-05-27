@@ -50,11 +50,11 @@ class LocInfo:
     end_col_offset: int
 
 
-class EvalParseException(BaseException): ...
+class PythonParseException(BaseException): ...
 
 
 def magic_py_parse(
-    src: str, filename: str = "<string>", mode="exec"
+    src: str, filename: str = "<string>", *, mode="exec", raise_as_python="False"
 ) -> py_ast.Module | py_ast.Expr:
     """
     Like ast.parse, but supports the new "var" and "const" syntax. See the module
@@ -67,10 +67,10 @@ def magic_py_parse(
         lineno = e.lineno or 1
         loc = Loc(filename, lineno, lineno, 0, -1)
         # this happens e.g. if we have an incomplete `if`, see test_magic_py_parse_error
-        if mode == "exec":
+        if raise_as_python:
             raise SPyError.simple("W_ParseError", e.msg, "", loc)
         else:
-            raise EvalParseException(f"Could not parse {src} in mode {mode}")
+            raise PythonParseException(f"Could not parse {src} in mode {mode}")
 
     for node in py_ast.walk(py_mod):
         if isinstance(node, py_ast.Name):
