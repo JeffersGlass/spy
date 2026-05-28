@@ -1164,15 +1164,7 @@ class AbstractFrame:
         w_opimpl = self.vm.call_OP(call.loc, OP.w_CALL, [wam_func] + args_wam)
 
         if wam_func.color == "blue" and wam_func.w_blueval is B.w_exec:
-            # Special-case exec(): execute the source string in the current
-            # frame so that it can mutate the caller namespace.
-            if not args_wam:
-                raise SPyError.simple(
-                    "W_TypeError",
-                    "exec() missing required argument",
-                    "expected a source string",
-                    call.loc,
-                )
+            # This conversion and type-checking probably doesn't belong here
             src = args_wam[0].blue_unwrap_str(self.vm)
             self.vm.exec_source(src, frame=self)
             return W_MetaArg.from_w_obj(self.vm, B.w_None)
