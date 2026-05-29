@@ -287,11 +287,33 @@ class TestSPdb(CompilerTest):
         dynamic type: <spy type 'i32'>
         42
         (spdb) y
-        *** NameError: name `y` is not defined
+        *** NameError: y
         (spdb) continue
         """
         mod = self.compile(src)
         mod.foo(42, session)
+
+    def test_exec(self):
+        src = """
+        from _test import spdb_interact
+
+        def foo(x: int, session: str) -> None:
+            spdb_interact(session)
+        """
+        session = f"""
+        --- entering applevel debugger ---
+           [0] test::foo at {self.filename}:5
+            |     spdb_interact(session)
+            |     |____________________|
+        (spdb) x = x + 1
+        (spdb) x
+        static type:  <spy type 'i32'>
+        dynamic type: <spy type 'i32'>
+        2
+        (spdb) continue
+        """
+        mod = self.compile(src)
+        mod.foo(1, session)
 
     def test_ParseError(self):
         src = """

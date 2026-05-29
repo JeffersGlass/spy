@@ -469,3 +469,19 @@ class TestBuiltins(CompilerTest):
                 "",
             ]
         )
+
+    def test_exec(self):
+        src = """
+
+        def foo() -> int:
+            exec("x = 1")
+            return x
+
+        def bar() -> int:
+            x = 1
+            exec("x = x + 1")
+            return x
+        """
+        mod = self.compile(src)
+        assert mod.foo() == 1
+        assert mod.bar() == 2
