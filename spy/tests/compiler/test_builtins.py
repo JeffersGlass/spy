@@ -470,7 +470,7 @@ class TestBuiltins(CompilerTest):
             ]
         )
 
-    def test_exec(self):
+    def test_exec_basic(self):
         src = """
 
         def foo() -> int:
@@ -485,3 +485,13 @@ class TestBuiltins(CompilerTest):
         mod = self.compile(src)
         assert mod.foo() == 1
         assert mod.bar() == 2
+
+    def test_exec_func(self):
+        src = """
+
+        def foo() -> int:
+            exec('def inner() -> int: return 42')
+            return inner()
+        """
+        mod = self.compile(src)
+        assert mod.foo() == 42
