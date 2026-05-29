@@ -2,7 +2,8 @@
 # Update importing.SPYC_VERSION in case of any significant change
 # ================================================================
 
-from typing import Optional
+from contextlib import contextmanager
+from typing import Iterator, Optional
 
 from spy import ast
 from spy.analyze.symtable import (
@@ -57,6 +58,7 @@ class ScopeAnalyzer:
         ast.FuncDef | ast.GenericFuncDef | ast.ClassDef | ast.GenericClassDef, SymTable
     ]
     loop_depth: int
+    is_interactive: bool
 
     def __init__(self, modname: str, mod: ast.Module) -> None:
         self.mod = mod
@@ -65,6 +67,7 @@ class ScopeAnalyzer:
         self.stack = []
         self.inner_scopes = {}
         self.loop_depth = 0
+        self.is_interactive = False
         self.push_scope(self.builtins_scope)
         self.push_scope(self.mod_scope)
 
@@ -123,6 +126,12 @@ class ScopeAnalyzer:
 
     def pop_scope(self) -> SymTable:
         return self.stack.pop()
+
+    @contextmanager
+    def interactive(self) -> Iterator[None]:
+        self.is_interactive = True
+        yield
+        self.is_interactive = False
 
     @property
     def scope(self) -> SymTable:
@@ -189,9 +198,16 @@ class ScopeAnalyzer:
                 err.add("note", "this is the previous declaration", sym.loc)
                 raise err
 
+            elif self.is_interactive and level == 1:
+                # Declaring something with "exec" that was previously referenced in
+                # its containing scope
+                scope._symbols[sym.name] = sym.replace(storage="direct", level=0)
+                return
+
             elif scope is not self.builtins_scope:
                 # shadowing a name in an outer scope
                 # Exception: always allow shadowing builtins
+                # or if we're in exec and
                 msg = (
                     f"variable `{name}` shadows a name declared " + "in an outer scope"
                 )

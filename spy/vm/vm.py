@@ -221,14 +221,21 @@ class SPyVM:
             mod = spyast.Module(
                 loc=Loc.fake(), filename=filename, docstring="<exec>", decls=[]
             )
+
             analyzer = ScopeAnalyzer(frame.ns.modname, mod)
+
+            # module scopes are already on the analyzer stack, but we need to make sure
+            # the enclosing scope (if any) is also analyzed
+            if frame.symtable.kind != "module":
+                analyzer.push_scope(frame.symtable)
 
             inner = analyzer.new_SymTable("__exec__", frame.symtable.color, "function")
             analyzer.push_scope(inner)
-            for s in stmts:
-                analyzer.declare(s)
-            for s in stmts:
-                analyzer.flatten(s)
+            with analyzer.interactive():
+                for s in stmts:
+                    analyzer.declare(s)
+                for s in stmts:
+                    analyzer.flatten(s)
 
             # merge collected symbols into the frame.symtable where missing
             for name, sym in inner._symbols.items():
