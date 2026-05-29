@@ -88,11 +88,12 @@ def execute_spy_main(
     if vm._w_main:
         w_main = vm._w_main
     else:
-        w_main = w_mod.getattr_maybe("main")
-        if w_main is None:
+        maybe_w_main = w_mod.getattr_maybe("main")
+        if maybe_w_main is None:
             print("Cannot find function main()")
             return
-        vm._w_main = w_main
+        assert isinstance(maybe_w_main, W_ASTFunc)
+        vm._w_main = maybe_w_main
 
     assert isinstance(w_main, W_ASTFunc)
     w_restype, has_args = vm.typecheck_main(w_main)

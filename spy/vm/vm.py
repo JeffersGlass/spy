@@ -108,7 +108,7 @@ class SPyVM:
     globals_w: dict[FQN, W_Object]
     irtags: dict[FQN, IRTag]
     modules_w: dict[str, W_Module]
-    _w_main: W_Module
+    _w_main: W_ASTFunc | None
     # Maps a real FQN to a display FQN used only for human-readable rendering.
     # The display FQN is NOT registered in globals_w and must not be used for lookup.
     fqn_human_aliases: dict[FQN, FQN]
