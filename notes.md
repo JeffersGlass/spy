@@ -15,3 +15,6 @@ Look at `vm.exec_source()`
 5/27 - Can't assign new attributes to classes, but could dynamically create new class with exec?
 
 5/27 - Can now exec statements in spdb by default! Only statements, not expressions yet...
+
+5/29 - Wrote some tests, exec roughly works. It doesn't work for things that break 
+5/29 - Branch pyrepl-rough-closurevars has some work with a new test in `test_builtins`, trying to get `exec`'d functions to close over outer variables...but it breaks things...
