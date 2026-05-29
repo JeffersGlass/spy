@@ -67,7 +67,7 @@ def magic_py_parse(
 
 def magic_py_parse(
     src: str, filename: str = "<string>", mode: str = "exec"
-) -> py_ast.Module | py_ast.Expr:
+) -> py_ast.Module | py_ast.Expression:
     """
     Like ast.parse, but supports the new "var" and "const" syntax. See the module
     docstring for more info.
@@ -92,7 +92,6 @@ def magic_py_parse(
                 node.lineno, node.end_lineno, node.col_offset, node.end_col_offset
             )
             node.spy_varkind = varkind_locs.get(loc_info)
-    assert isinstance(py_mod, (py_ast.Module, py_ast.Expr))
     return py_mod
 
 

@@ -94,6 +94,7 @@ def execute_spy_main(
             return
         assert isinstance(maybe_w_main, W_ASTFunc)
         vm._w_main = maybe_w_main
+        w_main = maybe_w_main
 
     assert isinstance(w_main, W_ASTFunc)
     w_restype, has_args = vm.typecheck_main(w_main)
