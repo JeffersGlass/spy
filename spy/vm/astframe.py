@@ -981,7 +981,14 @@ class AbstractFrame:
 
     def eval_expr_NameLocalDirect(self, name: ast.NameLocalDirect) -> W_MetaArg:
         sym = name.sym
-        lv = self.locals[sym.name]
+        lv = self.locals.get(sym.name)
+        if lv == None:
+            raise SPyError.simple(
+                "W_NameError",
+                sym.name,
+                "not found in this scope",
+                name.loc,
+            )
         if lv.color == "red" and self.redshifting:
             w_val = None
         else:
