@@ -466,7 +466,7 @@ class ScopeAnalyzer:
     # ===
 
     def capture_maybe(self, varname: str) -> None:
-        level, _, _ = self.lookup_ref(varname)
+        level, _st, _sym = self.lookup_ref(varname)
         if level == -1:
             # name not found
             assert not self.scope.has_definition(varname)

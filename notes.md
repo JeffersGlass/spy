@@ -20,3 +20,6 @@ Look at `vm.exec_source()`
 
 5/29 - Wrote some tests, exec roughly works. It doesn't work for things that break 
 5/29 - Branch pyrepl-rough-closurevars has some work with a new test in `test_builtins`, trying to get `exec`'d functions to close over outer variables...but it breaks things...
+
+6/1 - Multiline input kinda works? This is more of a hack than anything... any compilation errors don't show up anywhere, which isn't great
+

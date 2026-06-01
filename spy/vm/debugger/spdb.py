@@ -6,6 +6,7 @@ import cmd
 import pdb
 import sys
 from contextlib import contextmanager
+from dataclasses import dataclass
 from typing import IO, TYPE_CHECKING, Annotated, Any, Literal, Optional
 
 from spy import ast
@@ -13,7 +14,7 @@ from spy.doppler import DopplerFrame
 from spy.errfmt import ErrorFormatter
 from spy.errors import SPyError
 from spy.location import Loc
-from spy.magic_py_parse import PythonParseException
+from spy.magic_py_parse import PythonParseException, magic_py_parse
 from spy.parser import Parser
 from spy.textbuilder import ColorFormatter
 from spy.util import record_src_in_linecache
@@ -28,6 +29,8 @@ from spy.vm.opspec import W_MetaArg
 from spy.vm.w import W_Object
 
 if TYPE_CHECKING:
+    import ast as py_ast
+
     from spy.vm.vm import SPyVM
 
 FILE = Optional[IO[str]]
@@ -63,6 +66,47 @@ def print_wam(
     print(s, file=file)
 
 
+# Mirrors pdb._PdbInteractiveConsole.more_lines()
+def console_more_lines(text: str):
+    src = text.rstrip(" \t")
+    n = len(src)
+    if n > 0 and text[n - 1] == "\n":
+        text = src
+    lines = text.splitlines(keepends=True)
+    last = lines[-1]
+    if not last.strip():
+        return False
+
+    if _magic_py_parsable(src, mode="single"):
+        if len(lines) == 1:
+            return False  # just the one line of complete code, don't wait for more
+        return (
+            (
+                last.startswith((" ", "\t")) or last.strip() != ""
+            )  # The line starts with spaces or at least is non-empty, and doesn't end with a newline, so there's probably more coming
+            and not last.endswith("\n")
+        )
+    return True
+
+
+@dataclass
+class BoolishMessage:
+    b: bool
+    msg: str | None = None
+    loc: Loc | None = None
+
+    def __bool__(self):
+        return self.b
+
+
+def _magic_py_parsable(src: str, mode="single") -> bool | BoolishMessage:
+    try:
+        magic_py_parse(src, filename="<try_parse>", mode=mode, raise_as_python=True)
+    except PythonParseException as exc:
+        return BoolishMessage(False, exc.msg, exc.loc)
+    return True
+
+
 class SPdbInput:
     def __init__(self, spdb_instance, stdin, stdout, prompt):
         import os
@@ -83,52 +127,36 @@ class SPdbInput:
 
     def readline(self):
         def more_lines(text: str) -> bool:
+            # Check if the input text matches any of the programmed commands. If so,
+            # run that command and move on
             if text.strip() == "\x1a":
-                # Ctrl + Z raises EOFError to quit pdb
-                # This is similarly handled in simple_interact.py
+                # Ctrl + Z raises EOFError to quit
                 raise EOFError
             cmd, _, line = self.spdb_instance.parseline(text)
             if not line or not cmd:
                 return False
-            func = getattr(self.pdb_instance, "do_" + cmd, None)
+            func = getattr(self.spdb_instance, "do_" + cmd, None)
             if func is not None:
                 return False
-            return self.more_lines(text)
+            return console_more_lines(text)
 
         try:
             multiline = (
                 self.readline_wrapper.multiline_input(
-                    more_lines, self.prompt, "... " + " " * (len(self.prompt) - 4)
+                    more_lines,
+                    "... " + " " * (len(self.prompt) - 4),
+                    "... " + " " * (len(self.prompt) - 4),
                 )
                 + "\n"
             )
             return multiline
+
         except EOFError:
             return "EOF"
 
-    @staticmethod
-    def more_lines(text: str) -> bool:
-        src = text.rstrip(" \t")
-        n = len(src)
-        if n > 0 and text[n - 1] == "\n":
-            text = src
-        try:
-            filename = record_src_in_linecache(text, name="spdb-eval")
-            parser = Parser(text, filename)
-            stmt = parser.parse_single_stmt(raise_as_python=True)
-        except PythonParseException:
-            lines = text.splitlines(keepends=True)
-            if len(lines) == 1:
-                return False
-            last = lines[-1]
-            return (
-                last.startswith((" ", "\t")) or last.strip() != ""
-            ) and not last.endswith("\n")
-        return len(stmt.body) > 0
-
 
 class SPdb(cmd.Cmd):
-    prompt = "(spdb🥸) "
+    prompt = "(spdb) "
 
     def __init__(
         self,
@@ -193,26 +221,62 @@ class SPdb(cmd.Cmd):
     def error(self, msg: str) -> None:
         print("***", msg, file=self.stdout)
 
-    def default(self, arg: str) -> None:
+    def default(self, line: str) -> None:
+        if not line:
+            return
+        code, buffer = self._read_code(
+            line
+        )  # code is the first line, buffer is the whole code as string
+        if buffer is None:
+            return
         f = self.get_curframe().spyframe
         try:
             with f.interactive():
-                self.vm.exec_source(arg, frame=f)
+                self.vm.exec_source(buffer, frame=f)
 
             # If the source is an expression, we need to print its value
-            filename = record_src_in_linecache(arg, name="spdb-eval")
-            parser = Parser(arg, filename)
+            filename = record_src_in_linecache(code, name="spdb-eval")
+            parser = Parser(code, filename)
             try:
                 parser.parse_single_expr()
             except PythonParseException:
                 pass
+            except SPyError as exc:
+                if exc.etype != "W_ParseError":
+                    raise exc
+                pass
             else:
-                self.do_print(arg)
+                self.do_print(line)
 
         except SPyError as e:
             etype = e.etype[2:]
             message = e.w_exc.message
             self.error(f"{etype}: {message}")
+
+    def _read_code(self, line) -> tuple[str | None, str | None]:
+        buffer = line
+        code = line + "\n"
+
+        if _magic_py_parsable(
+            line
+        ):  # If the line of code is complete statement, just return it
+            return code, buffer
+        try:
+            while True:
+                code = buffer
+                line = self.stdin.readline()
+                line = line.rstrip("\r\n")
+                if line == "":
+                    buffer += "\n"
+                    if res := _magic_py_parsable(buffer):
+                        return code, buffer
+                    else:
+                        raise SPyError.simple("W_ParseError", res.msg, "", res.loc)
+                        return None, None
+                else:
+                    buffer += "\n" + line
+        except EOFError:
+            return None, None
 
     def do_quit(self, arg: str) -> None:
         raise SPyError("W_SPdbQuit", "")

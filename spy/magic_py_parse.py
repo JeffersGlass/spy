@@ -50,7 +50,11 @@ class LocInfo:
     end_col_offset: int
 
 
-class PythonParseException(BaseException): ...
+class PythonParseException(BaseException):
+    def __init__(self, *args, msg: str = "", loc: Loc | None = Loc.fake(), **kwargs):
+        super().__init__(*args, **kwargs)
+        self.msg = msg
+        self.loc = loc
 
 
 @overload
@@ -71,6 +75,15 @@ def magic_py_parse(
 ) -> py_ast.Expr: ...
 
 
+@overload
+def magic_py_parse(
+    src: str,
+    filename: str = "<string>",
+    mode: Literal["single"] = "single",
+    raise_as_python=False,
+) -> py_ast.Expr: ...
+
+
 def magic_py_parse(
     src: str, filename: str = "<string>", mode: str = "exec", raise_as_python=False
 ) -> py_ast.Module | py_ast.Expression:
@@ -86,7 +99,10 @@ def magic_py_parse(
         loc = Loc(filename, lineno, lineno, 0, -1)
         # this happens e.g. if we have an incomplete `if`, see test_magic_py_parse_error
         if raise_as_python:
-            raise PythonParseException(f"Could not parse {src} in mode {mode}")
+            exc = PythonParseException(f"Could not parse {src} in mode {mode}")
+            exc.msg = e.msg
+            exc.loc = loc
+            raise exc
         else:
             raise SPyError.simple("W_ParseError", e.msg, "", loc)
 
