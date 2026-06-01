@@ -194,19 +194,25 @@ class SPdb(cmd.Cmd):
         print("***", msg, file=self.stdout)
 
     def default(self, arg: str) -> None:
-        self.vm.exec_source(arg, frame=self.get_curframe().spyframe)
-
-        # If the source is an expression, we need to print its value
-        null_result = object()
-        result = null_result
-        filename = record_src_in_linecache(arg, name="spdb-eval")
-        parser = Parser(arg, filename)
+        f = self.get_curframe().spyframe
         try:
-            parser.parse_single_expr()
-        except PythonParseException:
-            pass
-        else:
-            self.do_print(arg)
+            with f.interactive():
+                self.vm.exec_source(arg, frame=f)
+
+            # If the source is an expression, we need to print its value
+            filename = record_src_in_linecache(arg, name="spdb-eval")
+            parser = Parser(arg, filename)
+            try:
+                parser.parse_single_expr()
+            except PythonParseException:
+                pass
+            else:
+                self.do_print(arg)
+
+        except SPyError as e:
+            etype = e.etype[2:]
+            message = e.w_exc.message
+            self.error(f"{etype}: {message}")
 
     def do_quit(self, arg: str) -> None:
         raise SPyError("W_SPdbQuit", "")

@@ -1,3 +1,4 @@
+import os
 import pdb as stdlib_pdb  # to distinguish from the "--pdb" option  # to distinguish from the "--pdb" option
 import sys
 import time
@@ -11,6 +12,7 @@ from typing import (
     Protocol,
 )
 
+from spy.cli._tb import tb_hide_magic_frames_maybe
 from spy.cli.commands.shared_args import Base_Args
 from spy.doppler import ErrorMode
 from spy.errors import SPyError
@@ -64,15 +66,15 @@ async def _run_command(user_func: Callable, args: "Base_Args") -> None:
             spdb.post_mortem()
         elif args.pdb:
             # post-mortem interp-level debugger
-            info = sys.exc_info()
-            stdlib_pdb.post_mortem(info[2])
+            tb = tb_hide_magic_frames_maybe()
+            stdlib_pdb.post_mortem(tb)
         sys.exit(1)
     except Exception as e:
         if not args.pdb:
             raise
         traceback.print_exc()
-        info = sys.exc_info()
-        stdlib_pdb.post_mortem(info[2])
+        tb = tb_hide_magic_frames_maybe()
+        stdlib_pdb.post_mortem(tb)
         sys.exit(1)
 
 
@@ -86,11 +88,13 @@ def execute_spy_main(
     if vm._w_main:
         w_main = vm._w_main
     else:
-        w_main = w_mod.getattr_maybe("main")
-        if w_main is None:
+        maybe_w_main = w_mod.getattr_maybe("main")
+        if maybe_w_main is None:
             print("Cannot find function main()")
             return
-        vm._w_main = w_main
+        assert isinstance(maybe_w_main, W_ASTFunc)
+        vm._w_main = maybe_w_main
+        w_main = maybe_w_main
 
     assert isinstance(w_main, W_ASTFunc)
     w_restype, has_args = vm.typecheck_main(w_main)

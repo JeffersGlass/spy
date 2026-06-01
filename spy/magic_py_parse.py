@@ -33,7 +33,7 @@ import ast as py_ast
 from dataclasses import dataclass
 from io import BytesIO
 from tokenize import NAME, TokenError, TokenInfo, tokenize
-from typing import Literal
+from typing import Literal, overload, reveal_type
 
 from spy.errors import SPyError
 from spy.location import Loc
@@ -53,9 +53,21 @@ class LocInfo:
 class PythonParseException(BaseException): ...
 
 
+@overload
 def magic_py_parse(
-    src: str, filename: str = "<string>", *, mode="exec", raise_as_python="False"
-) -> py_ast.Module | py_ast.Expr:
+    src: str, filename: str = "<string>", mode: Literal["exec"] = "exec"
+) -> py_ast.Module: ...
+
+
+@overload
+def magic_py_parse(
+    src: str, filename: str = "<string>", mode: Literal["eval"] = "eval"
+) -> py_ast.Expr: ...
+
+
+def magic_py_parse(
+    src: str, filename: str = "<string>", mode: str = "exec"
+) -> py_ast.Module | py_ast.Expression:
     """
     Like ast.parse, but supports the new "var" and "const" syntax. See the module
     docstring for more info.
@@ -80,7 +92,6 @@ def magic_py_parse(
                 node.lineno, node.end_lineno, node.col_offset, node.end_col_offset
             )
             node.spy_varkind = varkind_locs.get(loc_info)
-
     return py_mod
 
 

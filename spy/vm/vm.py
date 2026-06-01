@@ -108,7 +108,7 @@ class SPyVM:
     globals_w: dict[FQN, W_Object]
     irtags: dict[FQN, IRTag]
     modules_w: dict[str, W_Module]
-    _w_main: W_Module
+    _w_main: W_ASTFunc | None
     # Maps a real FQN to a display FQN used only for human-readable rendering.
     # The display FQN is NOT registered in globals_w and must not be used for lookup.
     fqn_human_aliases: dict[FQN, FQN]
@@ -234,6 +234,7 @@ class SPyVM:
             for name, sym in inner._symbols.items():
                 l: Symbol | None = frame.symtable.lookup_maybe(name)
                 if l is None or l.storage == "NameError":
+                    sym = sym.replace(storage="direct", level=0)
                     frame.symtable._symbols[name] = sym
 
             # execute the statements in interactive mode so that dynamic lookups
@@ -246,26 +247,6 @@ class SPyVM:
                     frame.exec_stmt(s)
 
             return
-
-        # Fallback: execute in a temporary module (legacy path)
-        # Reuse existing importer-based approach to ensure imports/vardefs work
-        # as before.
-        import tempfile
-        from pathlib import Path
-
-        from spy.analyze.importing import ImportAnalyzer
-
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".spy", dir=".", delete=False
-        ) as f:
-            name = f.name
-            f.write(source)
-
-        importer = ImportAnalyzer(self, str(Path(name).stem), use_spyc=False)
-        self.path.append(str(Path(name).parent))
-        importer.parse_all()
-        importer.import_all()
-        return
 
     def find_file_on_path(
         self, modname: str, allow_py_files: bool = False
