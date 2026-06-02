@@ -32,3 +32,68 @@ class methods:
                 return False
             i = i + 1
         return True
+
+    def split(self: str, sep: str) -> list[str]:
+        if self == "": return [""]
+
+        result = list[str]()
+
+        i: int = 0
+        sep_len = len(sep)
+        pinned_i = 0
+
+        while i <= len(self):
+            if self[i:i + sep_len] == sep:
+                if (len(result) == 0 and i == 0):
+                    result.append(self[:i])
+                else:
+                    result.append(self[pinned_i:i])
+                i = i + sep_len
+                pinned_i = I
+
+                if i == len(self):
+                    result.append("")
+            else:
+                i = i + 1
+        
+        result.append(self[pinned_i:])
+
+        return result
+
+
+"""
+        # Edge case: Empty input string with an explicit separator returns ['']
+        if s == "":
+            return [""]
+            
+        i = 0
+        sep_len = len(sep)
+        splits_done = 0
+        
+        while i <= len(s):
+            # If we reached maxsplit, group the entire remainder of the string
+            if maxsplit >= 0 and splits_done >= maxsplit:
+                result.append(s[i:])
+                break
+                
+            # Look for the separator match ahead
+            if s[i : i + sep_len] == sep:
+                result.append(s[:i] if len(result) == 0 and i == 0 else s[start_idx:i])
+                i += sep_len
+                start_idx = i
+                splits_done += 1
+                
+                # If separator matches at the very end of the string
+                if i == len(s):
+                    result.append("")
+            else:
+                if splits_done == 0 or (maxsplit >= 0 and splits_done > maxsplit):
+                    start_idx = i if i == 0 else start_idx
+                i += 1
+                
+        # Append the final chunk if we didn't hit maxsplit limit early
+        if maxsplit < 0 or splits_done < maxsplit:
+            result.append(s[start_idx:])
+            
+        return result
+"""

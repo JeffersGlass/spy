@@ -44,6 +44,7 @@ class W_Str(W_Object):
     __spy_storage_category__ = "value"
     __spy_lazy_attributes__ = {
         "isascii": FQN("_str::methods::isascii"),
+        "split": FQN("_str::methods::split"),
     }
 
     vm: "SPyVM"
