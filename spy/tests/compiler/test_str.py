@@ -56,6 +56,8 @@ class TestStr(CompilerTest):
         mod = self.compile("""
         def foo(a: str, i: i32) -> str:
             return a[i]
+        def bar(a:str, s:slice) -> str:
+            return a[i]
         """)
         assert mod.foo("ABCDE", 0) == "A"
         assert mod.foo("ABCDE", 1) == "B"
@@ -64,6 +66,12 @@ class TestStr(CompilerTest):
             mod.foo("ABCDE", 5)
         with SPyError.raises("W_IndexError", match="string index out of bound"):
             mod.foo("ABCDE", -6)
+
+        assert mod.bar("ABCDE", slice(0, 1)) == "A"
+        assert mod.bar("ABCDE", slice(1, 3)) == "BC"
+        assert mod.bar("ABCDE", slice(None, -1)) == "E"
+        with SPyError.raises("W_IndexError", match="string index out of bound"):
+            mod.bar("ABCDE", slice(0, 6))
 
     def test_compare(self):
         mod = self.compile("""

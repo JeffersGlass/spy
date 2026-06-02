@@ -45,6 +45,7 @@ class W_Str(W_Object):
     __spy_lazy_attributes__ = {
         "isascii": FQN("_str::methods::isascii"),
         "split": FQN("_str::methods::split"),
+        "_getitem_slice": FQN("_str::methods::_getitem_slice"),
     }
 
     vm: "SPyVM"
@@ -103,18 +104,30 @@ class W_Str(W_Object):
             )
         return W_OpSpec.NULL
 
-    @builtin_method("__getitem__")
+    @builtin_method("__getitem__", color="blue", kind="metafunc")
     @staticmethod
-    def w_getitem(vm: "SPyVM", w_s: "W_Str", w_i: W_I32) -> "W_Str":
-        assert isinstance(w_s, W_Str)
-        assert isinstance(w_i, W_I32)
-        ptr_c = vm.ll.call("spy_str_getitem", w_s.ptr, w_i.value)
-        return W_Str.from_ptr(vm, ptr_c)
+    def w_getitem(vm: "SPyVM", wam_s: W_MetaArg, wam_i: W_MetaArg) -> W_OpSpec:
+        assert wam_s.w_static_T is B.w_str
+        w_SliceType = vm.lookup_global(FQN("_slice::Slice"))
+        if wam_i.w_static_T is B.w_i32:
+
+            @vm.register_builtin_func(wam_s.w_static_T.fqn)
+            def w_inner_getitem(vm: "SPyVM", w_s: W_Str, w_i: W_I32) -> W_Str:
+                ptr_c = vm.ll.call("spy_str_getitem", w_s.ptr, w_i.value)
+                return W_Str.from_ptr(vm, ptr_c)
+        elif wam_i.w_static_T is w_SliceType:
+            breakpoint()
+
+            @vm.register_builtin_func(wam_s.w_static_T.fqn)
+            def w_inner_getitem(vm: "SPyVM", w_s: W_Str, w_slc: W_Object) -> W_Str:
+                _getitem_slice = vm.lookup_global(FQN("_str::methods::_getitem_slice"))
+                return vm.fast_call(_getitem_slice, [w_s, w_slc])
+
+        return W_OpSpec(w_inner_getitem)
 
     @builtin_method("__len__")
     @staticmethod
     def w_len(vm: "SPyVM", w_s: "W_Str") -> W_I32:
-        assert isinstance(w_s, W_Str)
         length = vm.ll.call("spy_str_len", w_s.ptr)
         return vm.wrap(length)
 
@@ -126,7 +139,6 @@ class W_Str(W_Object):
     @builtin_method("__repr__")
     @staticmethod
     def w_repr(vm: "SPyVM", w_s: "W_Str") -> "W_Str":
-        assert isinstance(w_s, W_Str)
         ptr = vm.ll.call("spy_str_repr", w_s.ptr)
         return W_Str.from_ptr(vm, ptr)
 

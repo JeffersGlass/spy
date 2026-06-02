@@ -33,6 +33,11 @@ class methods:
             i = i + 1
         return True
 
+    def _getitem_slice(self, s: Slice) -> str:
+        if s.start == 0 and s.step == 1: return self
+        elif step == 1:
+            ... # return self
+
     def split(self: str, sep: str) -> list[str]:
         if self == "": return [""]
 
