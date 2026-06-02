@@ -1,0 +1,15 @@
+# Exec can define new functions, including blue functions
+
+def main() -> None:
+    exec("""
+def double(x: int) -> int:
+    return x * 2""")
+    y = 2 
+    print("y doubled is ", double(y))
+
+    exec("""
+@blue
+def triple(x: int) -> int:
+    return x * 3""")
+    z = 2 
+    print("z tripled is ", triple(y))
