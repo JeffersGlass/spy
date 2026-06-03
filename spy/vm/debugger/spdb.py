@@ -5,7 +5,8 @@ The SPy debugger ("spy pdb")
 import cmd
 import pdb
 import sys
-from contextlib import contextmanager
+import warnings
+from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass
 from typing import IO, TYPE_CHECKING, Annotated, Any, Literal, Optional
 
@@ -89,6 +90,19 @@ def console_more_lines(text: str):
     return True
 
 
+@contextmanager
+def _replace_attribute(obj, attrs):
+    original_attrs = {}
+    for attr, value in attrs.items():
+        original_attrs[attr] = getattr(obj, attr)
+        setattr(obj, attr, value)
+    try:
+        yield
+    finally:
+        for attr, value in original_attrs.items():
+            setattr(obj, attr, value)
+
+
 @dataclass
 class BoolishMessage:
     b: bool
@@ -144,11 +158,16 @@ class SPdbInput:
             multiline = (
                 self.readline_wrapper.multiline_input(
                     more_lines,
-                    "... " + " " * (len(self.prompt) - 4),
+                    self.prompt,
                     "... " + " " * (len(self.prompt) - 4),
                 )
                 + "\n"
             )
+
+            try:
+                self.readline_wrapper.append_history_file()
+            except (FileNotFoundError, PermissionError, OSError) as e:
+                warnings.warn(f"failed to open the history file for writing: {e}")
             return multiline
 
         except EOFError:
@@ -176,7 +195,7 @@ class SPdb(cmd.Cmd):
         self.repl_input = None
         if stdin is None:
             try:
-                self.repl_input = SPdbInput(self, self.stdin, self.stdout, self.prompt)
+                self.repl_input = SPdbInput(self, self.stdin, self.stdout, "... ")
                 self.stdin = self.repl_input
             except Exception:
                 pass
@@ -221,32 +240,63 @@ class SPdb(cmd.Cmd):
     def error(self, msg: str) -> None:
         print("***", msg, file=self.stdout)
 
+    def do_interact(self, arg: str) -> None:
+        banner = "*pdb interact start*"
+        exitmsg = "*exit from pdb interact command*"
+        while True:
+            try:
+                try:
+                    if isinstance(self.repl_input, SPdbInput):
+                        cm = _replace_attribute(self.repl_input, {"prompt": ">>> "})
+                    else:
+                        cm = nullcontext()
+                    with cm:
+                        code, buffer = self._read_code("\n")
+                except EOFError:
+                    break
+                if buffer is None:
+                    continue
+                f = self.get_curframe().spyframe
+                with f.interactive():
+                    self.vm.exec_source(buffer, frame=f)
+            except KeyboardInterrupt:
+                print("KeyboardInterrupt - Exitting Interact")
+                break
+            except SPyError as e:
+                etype = e.etype[2:]
+                message = e.w_exc.message
+                self.error(f"{etype}: {message}")
+
+    def _exec(self, line: str, code=None, buffer=None) -> None:
+        f = self.get_curframe().spyframe
+
+        with f.interactive():
+            self.vm.exec_source(buffer, frame=f)
+
+        # If the source is an expression, we need to print its value
+        filename = record_src_in_linecache(code, name="spdb-eval")
+        parser = Parser(code, filename)
+        try:
+            parser.parse_single_expr()
+        except PythonParseException:
+            pass
+        except SPyError as exc:
+            if exc.etype != "W_ParseError":
+                raise exc
+            pass
+        else:
+            self.do_print(line)
+
     def default(self, line: str) -> None:
         if not line:
             return
-        code, buffer = self._read_code(
-            line
-        )  # code is the first line, buffer is the whole code as string
-        if buffer is None:
-            return
-        f = self.get_curframe().spyframe
         try:
-            with f.interactive():
-                self.vm.exec_source(buffer, frame=f)
-
-            # If the source is an expression, we need to print its value
-            filename = record_src_in_linecache(code, name="spdb-eval")
-            parser = Parser(code, filename)
-            try:
-                parser.parse_single_expr()
-            except PythonParseException:
-                pass
-            except SPyError as exc:
-                if exc.etype != "W_ParseError":
-                    raise exc
-                pass
-            else:
-                self.do_print(line)
+            code, buffer = self._read_code(
+                line
+            )  # code is the first line, buffer is the whole code as string
+            if buffer is None:
+                return
+            self._exec(line, code, buffer)
 
         except SPyError as e:
             etype = e.etype[2:]
@@ -395,28 +445,3 @@ class SPdb(cmd.Cmd):
             self.error(f"{etype}: {message}")
 
     do_p = do_print
-
-    @contextmanager
-    def _replace_attribute(self, attrs):
-        original_attrs = {}
-        for attr, value in attrs.items():
-            original_attrs[attr] = getattr(self, attr)
-            setattr(self, attr, value)
-        try:
-            yield
-        finally:
-            for attr, value in original_attrs.items():
-                setattr(self, attr, value)
-
-    @contextmanager
-    def _maybe_use_pyrepl_as_stdin(self):
-        if self.pyrepl_input is None:
-            yield
-            return
-
-        with self._replace_attribute(
-            {
-                "stdin": self.pyrepl_input,
-            }
-        ):
-            yield
