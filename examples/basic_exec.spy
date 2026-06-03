@@ -1,0 +1,10 @@
+def main() -> None:
+    # exec can modify existing variables
+    x = 1
+    print("Before, x = ", x)
+    exec("x = x + 1")
+    print("After,  x = ", x)
+
+    # exec can assign new variables
+    exec("y = 42")
+    print("y = ", y)

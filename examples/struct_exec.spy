@@ -1,0 +1,9 @@
+# Exec can define new struct types
+
+def main() -> None:
+    exec("""
+@struct 
+class foo():
+    a: int""")
+    f = foo(1)
+    print("f.a = ", f.a)
