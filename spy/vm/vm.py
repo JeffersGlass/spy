@@ -177,7 +177,7 @@ class SPyVM:
     def exec_source(
         self,
         source: str,
-        frame: Optional["AbstractFrame"] = None,
+        frame: "AbstractFrame",
         *,
         filename: Optional[str] = None,
     ) -> None:
@@ -202,51 +202,45 @@ class SPyVM:
         if filename is None:
             filename = record_src_in_linecache(source, name="exec")
 
-        # Parse Python AST first, then convert each stmt to SPy AST
+        # Parse
         py_mod = magic_py_parse(source, filename)
         py_mod.compute_all_locs(filename)
         parser = Parser(source, filename)
         stmts: list[spyast.Stmt] = [parser.from_py_stmt(s) for s in py_mod.body]
 
-        # If a target frame is provided, analyze the stmts to declare any new
-        # symbols and then execute them interactively in that frame.
-        if frame is not None:
-            # Build a minimal analyzer so we can collect symbol defs for the
-            # exec block. We push a fresh inner scope and run declare/flatten on
-            # the statements so that implicit declarations (assignments) are
-            # recorded. Then merge those symbols into the target frame's
-            # symtable before executing the stmts interactively.
-            from spy.location import Loc
+        # Analyze SPy module and build symtable
+        from spy.location import Loc
 
-            mod = spyast.Module(
-                loc=Loc.fake(), filename=filename, docstring="<exec>", decls=[]
-            )
-            analyzer = ScopeAnalyzer(frame.ns.modname, mod)
+        mod = spyast.Module(
+            loc=Loc.fake(), filename=filename, docstring="<exec>", decls=[]
+        )
+        analyzer = ScopeAnalyzer(frame.ns.modname, mod)
+        inner = analyzer.new_SymTable("__exec__", frame.symtable.color, "function")
+        analyzer.push_scope(inner)
+        for s in stmts:
+            analyzer.declare(s)
+        for s in stmts:
+            analyzer.flatten(s)
 
-            inner = analyzer.new_SymTable("__exec__", frame.symtable.color, "function")
-            analyzer.push_scope(inner)
+        # merge collected symbols into the frame.symtable where missing
+        # This is something of a hack
+        for name, sym in inner._symbols.items():
+            l: Symbol | None = frame.symtable.lookup_maybe(name)
+            if l is None or l.storage == "NameError":
+                sym = sym.replace(storage="direct", level=0)
+                frame.symtable._symbols[name] = sym
+
+        # execute the statements in interactive mode so that dynamic lookups
+        # are allowed (similar to SPdb interactive eval)
+        # Also a hack, and may need some additional forward declares?
+        with frame.interactive():
             for s in stmts:
-                analyzer.declare(s)
+                if isinstance(s, ast.ClassDef):
+                    frame.fwdecl_ClassDef(s)
             for s in stmts:
-                analyzer.flatten(s)
+                frame.exec_stmt(s)
 
-            # merge collected symbols into the frame.symtable where missing
-            for name, sym in inner._symbols.items():
-                l: Symbol | None = frame.symtable.lookup_maybe(name)
-                if l is None or l.storage == "NameError":
-                    sym = sym.replace(storage="direct", level=0)
-                    frame.symtable._symbols[name] = sym
-
-            # execute the statements in interactive mode so that dynamic lookups
-            # are allowed (similar to SPdb interactive eval)
-            with frame.interactive():
-                for s in stmts:
-                    if isinstance(s, ast.ClassDef):
-                        frame.fwdecl_ClassDef(s)
-                for s in stmts:
-                    frame.exec_stmt(s)
-
-            return
+        return
 
     def find_file_on_path(
         self, modname: str, allow_py_files: bool = False
