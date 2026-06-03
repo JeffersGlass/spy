@@ -1,0 +1,4 @@
+import some_mod
+
+def main() -> None:
+    print(getme.func())

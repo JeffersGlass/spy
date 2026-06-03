@@ -1,0 +1,3 @@
+def func() -> int:
+    exec("val = 100")
+    return val
