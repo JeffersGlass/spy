@@ -1,4 +1,5 @@
 import re
+from textwrap import dedent
 
 from spy.errors import SPyError
 from spy.tests.support import CompilerTest, skip_backends
@@ -52,7 +53,7 @@ class TestStr(CompilerTest):
         """)
         assert mod.identity("hello") == "hello"
 
-    def test_getitem(self):
+    def test_getitem_int(self):
         mod = self.compile("""
         def foo(a: str, i: i32) -> str:
             return a[i]
@@ -72,6 +73,55 @@ class TestStr(CompilerTest):
         assert mod.bar("ABCDE", slice(None, -1)) == "E"
         with SPyError.raises("W_IndexError", match="string index out of bound"):
             mod.bar("ABCDE", slice(0, 6))
+
+    def test_getitem_slice(self):
+        eq_list = [
+            ("abc", "abc", slice(0, 3, None)),
+            ("abc", "abc", slice(0, 1000, None)),
+            ("a", "abc", slice(0, 1, None)),
+            ("", "abc", slice(0, 0, None)),
+            ("ab", "abc", slice(0, 2, None)),
+            ("bc", "abc", slice(1, 3, None)),
+            ("b", "abc", slice(1, 2, None)),
+            ("", "abc", slice(2, 2, None)),
+            ("", "abc", slice(1000, 1000, None)),
+            ("", "abc", slice(2000, 1000, None)),
+            ("", "abc", slice(2, 1, None)),
+        ]
+
+        def args_to_func_name(s_in: str, slc: slice) -> str:
+            return "f" + "_".join(
+                str(a).replace("-", "n") for a in (s_in, slc.start, slc.stop, slc.step)
+            )
+
+        src = "from _slice import tuple3"
+
+        # Generate a function (who's name we know) that takes no arguments
+        # and returns the slice.indices() of the given slice.
+        # Append that function to the source code for the module
+        # we're about to compile.
+        for _, s_in, slc in eq_list:
+            src += dedent(f"""
+            def {args_to_func_name(s_in, slc)}() -> str:
+                s: slice = slice({slc.start}, {slc.stop}, {slc.step})
+                return "{s_in}"[s]
+            """)
+
+        mod = self.compile(src)
+
+        for res, s_in, slc in eq_list:
+            # For each pair (inp, out), it should be true that slice(*inp).indices() == out
+            assert getattr(mod, args_to_func_name(s_in, slc))() == res
+        return
+
+    def test_split(self):
+        mod = self.compile("""
+            def split(s: str, sep: str) -> list[str]:
+                return s.split(sep)
+        """)
+
+        assert mod.split("a|b|c|d", "|") == ["a", "b", "c", "d"]
+        assert mod.split("a||b|c||d", "||") == ["a", "b|c", "d"]
 
     def test_compare(self):
         mod = self.compile("""

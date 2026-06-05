@@ -33,10 +33,35 @@ class methods:
             i = i + 1
         return True
 
-    def _getitem_slice(self, s: Slice) -> str:
-        if s.start == 0 and s.step == 1: return self
-        elif step == 1:
-            ... # return self
+    def _getitem_slice(self: str, slc: slice) -> str:
+        # Fast path for trivial slices:
+        if (slc.start == 0 or slc.start_is_none) and (slc.stop == -1 or slc.stop_is_none) and (slc.step == 1 or slc.step_is_none): return self
+        
+        indices = slc.indices(len(self))
+        start = indices.start
+        stop = indices.stop
+        step = indices.step
+        result_list = list[str]()
+
+        if step > 0:
+            current = start
+            while current < stop:
+                result_list.append(self[current])
+                current += step
+        else:
+            current = start
+            while current > stop:
+                result_list.append(self[current])
+                current += step
+
+        if not len(result_list):
+            return ""
+        
+        result_str = ""
+        for r in result_list:
+            result_str = result_str + r
+                   
+        return result_str
 
     def split(self: str, sep: str) -> list[str]:
         if self == "": return [""]
@@ -54,9 +79,9 @@ class methods:
                 else:
                     result.append(self[pinned_i:i])
                 i = i + sep_len
-                pinned_i = I
+                pinned_i = i
 
-                if i == len(self):
+                if i >= len(self):
                     result.append("")
             else:
                 i = i + 1
@@ -67,6 +92,7 @@ class methods:
 
 
 """
+        
         # Edge case: Empty input string with an explicit separator returns ['']
         if s == "":
             return [""]
