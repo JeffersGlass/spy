@@ -63,32 +63,32 @@ class methods:
                    
         return result_str
 
-    def split(self: str, sep: str) -> list[str]:
-        if self == "": return [""]
+    # def split(self: str, sep: str) -> list[str]:
+    #     if self == "": return [""]
 
-        result = list[str]()
+    #     result = list[str]()
 
-        i: int = 0
-        sep_len = len(sep)
-        pinned_i = 0
+    #     i: int = 0
+    #     sep_len = len(sep)
+    #     pinned_i = 0
 
-        while i <= len(self):
-            if self[i:i + sep_len] == sep:
-                if (len(result) == 0 and i == 0):
-                    result.append(self[:i])
-                else:
-                    result.append(self[pinned_i:i])
-                i = i + sep_len
-                pinned_i = i
+    #     while i <= len(self):
+    #         if self[i:i + sep_len] == sep:
+    #             if (len(result) == 0 and i == 0):
+    #                 result.append(self[:i])
+    #             else:
+    #                 result.append(self[pinned_i:i])
+    #             i = i + sep_len
+    #             pinned_i = i
 
-                if i >= len(self):
-                    result.append("")
-            else:
-                i = i + 1
+    #             if i >= len(self):
+    #                 result.append("")
+    #         else:
+    #             i = i + 1
         
-        result.append(self[pinned_i:])
+    #     result.append(self[pinned_i:])
 
-        return result
+    #     return result
 
 
 """
