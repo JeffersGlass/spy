@@ -68,13 +68,11 @@ class TestStr(CompilerTest):
         with SPyError.raises("W_IndexError", match="string index out of bound"):
             mod.foo("ABCDE", -6)
 
-        assert mod.bar("ABCDE", slice(0, 1)) == "A"
-        assert mod.bar("ABCDE", slice(1, 3)) == "BC"
-        assert mod.bar("ABCDE", slice(None, -1)) == "E"
-        with SPyError.raises("W_IndexError", match="string index out of bound"):
-            mod.bar("ABCDE", slice(0, 6))
-
     def test_getitem_slice(self):
+        # Because we can't wrap slices and pass them into the test, and
+        # because we want to only compiler the module once, we do this dance
+        # where we build a bunch of names functions inside module source
+        # Before it's compiled
         eq_list = [
             ("abc", "abc", slice(0, 3, None)),
             ("abc", "abc", slice(0, 1000, None)),
