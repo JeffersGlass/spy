@@ -116,6 +116,11 @@ def CONVERT_maybe(
     return vm.fast_call(OP.w_CONVERT, [wam_expT, wam_gotT, wam_x])  # type: ignore
 
 
+@OP.builtin_func(color="blue", kind="metafunc")
+def w_is_convertible_to(vm: "SPyVM", wam_expT: W_MetaArg, wam: W_MetaArg) -> W_Bool:
+    return W_OpSpec.const(B.w_False)
+
+
 @OP.builtin_func
 def w_i32_to_f64(vm: "SPyVM", w_x: W_I32) -> W_F64:
     val = vm.unwrap_i32(w_x)
