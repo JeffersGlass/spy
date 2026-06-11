@@ -118,7 +118,13 @@ def CONVERT_maybe(
 
 @OP.builtin_func(color="blue", kind="metafunc")
 def w_is_convertible_to(vm: "SPyVM", wam_expT: W_MetaArg, wam: W_MetaArg) -> W_Bool:
-    return W_OpSpec.const(B.w_False)
+    @vm.register_builtin_func(
+        "builtins", "is_convertible_to", [wam_expT.w_static_T.fqn, wam.w_static_T.fqn]
+    )
+    def w_fn(vm: "SPyVM", w_T: W_Type, w_obj: W_Object) -> W_Bool:
+        return B.w_True
+
+    return W_OpSpec(w_fn, [wam_expT, wam])
 
 
 @OP.builtin_func
