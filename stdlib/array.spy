@@ -14,7 +14,7 @@ In particular we don't support an arbitrary number of dimensions: currently we
 hardcode _array1, _array2, _array3, etc.
 """
 
-from operator import OpSpec
+from operator import OpSpec, is_convertible_to
 from unsafe import gc_alloc, gc_ptr, ptr_setbytes
 
 
@@ -193,7 +193,7 @@ def _array3(DTYPE):
 def zeros(DTYPE):
     @blue.metafunc
     def metazeros(m_shape):
-        if m_shape.static_type == i32:
+        if is_convertible_to(i32, m_shape):
             ArrayT = array[DTYPE, 1]
 
             def impl(n: i32) -> ArrayT:
@@ -207,7 +207,7 @@ def zeros(DTYPE):
 
             return OpSpec(impl)
 
-        elif m_shape.static_type == tuple:
+        elif is_convertible_to(tuple, m_shape):
             raise StaticError("WIP")
 
         else:

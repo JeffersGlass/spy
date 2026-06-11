@@ -1,16 +1,16 @@
-from operator import OpSpec
+from operator import OpSpec, is_convertible_to
 
 
 @blue.metafunc
 def myprint(m_x):
-    if m_x.static_type == int:
+    if is_convertible_to(int, m_x):
 
         def myprint_int(x: int) -> None:
             print(x)
 
         return OpSpec(myprint_int)
 
-    if m_x.static_type == str:
+    if is_convertible_to(str, m_x):
 
         def myprint_str(x: str) -> None:
             print(x)
