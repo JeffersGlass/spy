@@ -159,3 +159,18 @@ class TestConvop(CompilerTest):
         #
         res = mod.convert_to_str_arg(44)
         assert res == "<conv 44 to str>"
+
+    def test_is_convertible_to(self):
+        src = """
+        from operator import is_convertible_to
+
+        def conv_float(x: int) -> bool:
+            return is_convertible_to(float, x)
+
+        def conv_str(x: int) -> bool:
+            return is_convertible_to(str, x)
+        """
+
+        mod = self.compile(src)
+        assert mod.conv_float(1)
+        assert not mod.conv_str(1)
