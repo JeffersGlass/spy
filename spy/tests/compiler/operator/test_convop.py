@@ -170,7 +170,34 @@ class TestConvop(CompilerTest):
         def conv_str(x: int) -> bool:
             return is_convertible_to(str, x)
         """
-
         mod = self.compile(src)
         assert mod.conv_float(1)
         assert not mod.conv_str(1)
+
+    def test_is_convertible_to_meta(self):
+        src = """
+        from operator import OpSpec, is_convertible_to
+
+        @blue.metafunc
+        def myprint(m_x):
+            if is_convertible_to(int, m_x):
+                def myprint_int(x: int) -> str:
+                    return "i" + str(x)
+                return OpSpec(myprint_int, [m_x])
+
+            if is_convertible_to(str, m_x):
+                def myprint_str(x: str) -> str:
+                    return "s" + x
+                return OpSpec(myprint_str, [m_x])
+            return OpSpec.NULL
+
+        def test_i() -> str:
+            return myprint(1)
+
+        def test_s() -> str:
+            return myprint("a")
+        """
+
+        meta_mod = self.compile(src)
+        assert meta_mod.test_i() == "i1"
+        assert meta_mod.test_s() == "sa"
