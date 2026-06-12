@@ -76,8 +76,10 @@ RunKind = Literal["interp", "build"]
 @dataclass
 class SingleResult:
     benchfile: Path | str
+    ref: str
     kind: RunKind
     reported_time: Decimal
+    refname: str = ""
     _raw_stdout: str = ""
     _raw_stderr: str = ""
 
@@ -110,7 +112,7 @@ def run_benchmarks_in_ref(
     num_runs: int,
     timeout: int,
     verbose=False,
-) -> Any:
+) -> list[SingleResult]:
     if verbose:
         output = lambda *a, **k: print(*a, **k)
     else:
@@ -127,7 +129,7 @@ def run_benchmarks_in_ref(
         for bench in benchlist:
             print(f"Running benchmark {bench}".center(80, "-"))
             for i in range(num_runs):
-                output(f"Interpreter run {i: >3}: ")
+                output(f"Interpreter run {i + 1: >3}: ")
                 raw_res_interp = subprocess.run(
                     ["uv", "run", "spy", "--timeit", "--no-spyc", str(bench)],
                     cwd=tmp_dir,
@@ -140,17 +142,19 @@ def run_benchmarks_in_ref(
                 )
                 results.append(
                     SingleResult(
-                        bench,
-                        "interp",
-                        time,
-                        raw_res_interp.stdout,
-                        raw_res_interp.stderr,
+                        benchfile=bench,
+                        ref=ref,
+                        kind="interp",
+                        reported_time=time,
+                        ref_name=ref_name,
+                        _raw_stdout=raw_res_interp.stdout,
+                        _raw_srderr=raw_res_interp.stderr,
                     )
                 )
                 output(f"{time} seconds")
                 breakpoint()
 
-                output(f"Build run {i: >3}      :   ")
+                output(f"Build run {i + 1: >3}      :   ")
                 raw_res_build = subprocess.run(
                     [
                         "uv",
@@ -183,6 +187,33 @@ def run_benchmarks_in_ref(
         return results
 
 
+def print_data(data: list[SingleResult]) -> None:
+    kinds = {sr.kind for sr in data}
+
+    for kind in kinds:
+        ref_names = {sr.refname for sr in data}
+        print(f"{f' {kind} '.center(60, '.')}")
+
+    # TODO more here. What follows was the first draft
+    return
+    for data in data_interpreter, data_build, data_build_release:
+        headers = ["Benchmark", "Applevel Algo", "LowLevel Algo", "Relative Time"]
+        table = []
+        for label in "mono", "poly":
+            mean_app = mean(data["app"].get(label))
+            mean_ll = mean(data["ll"].get(label))
+            table.append(
+                [
+                    label,
+                    f"{round(mean_app, 4)}s",
+                    f"{round(mean_ll, 4)}s",
+                    f"{round(100 * mean_ll / mean_app, 2)}%",
+                ]
+            )
+        print(tabulate.tabulate(table, headers=headers))
+        print("\n\n")
+
+
 def main():
     args = parser.parse_args()
     if args.ref_names is not None and len(args.ref_names) != len(args.refs):
@@ -208,9 +239,9 @@ def main():
     if exc_list:
         raise ExceptionGroup("Encountered errors while gathering benchmarks", exc_list)
 
-    results: dict[str, list[list[SingleResult]]] = []
+    results: list[SingleResult] = []
     for ref, name in zip(args.refs, args.ref_names):
-        results.append(
+        results.extend(
             run_benchmarks_in_ref(
                 ref,
                 name,
@@ -221,28 +252,6 @@ def main():
             )
         )
 
-    breakpoint()
-
 
 if __name__ == "__main__":
     main()
-
-
-def print_data():
-    for data in data_interpreter, data_build, data_build_release:
-        print(f"{f' {data["name"]} '.center(60, '.')}")
-        headers = ["Benchmark", "Applevel Algo", "LowLevel Algo", "Relative Time"]
-        table = []
-        for label in "mono", "poly":
-            mean_app = mean(data["app"].get(label))
-            mean_ll = mean(data["ll"].get(label))
-            table.append(
-                [
-                    label,
-                    f"{round(mean_app, 4)}s",
-                    f"{round(mean_ll, 4)}s",
-                    f"{round(100 * mean_ll / mean_app, 2)}%",
-                ]
-            )
-        print(tabulate.tabulate(table, headers=headers))
-        print("\n\n")
