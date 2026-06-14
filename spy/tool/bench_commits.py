@@ -17,39 +17,12 @@ from typing import Any, Literal
 
 import tabulate
 
-data_interpreter = {
-    "name": "spy execute --timeit",
-    "app": {"mono": [5.662, 5.477, 5.951], "poly": [6.009, 5.397, 5.630]},
-    "ll": {"mono": [2.962, 2.912, 2.913], "poly": [3.634, 3.987, 3.675]},
-}
-
-data_build = {
-    "name": "spy build -x --timeit",
-    "app": {
-        "mono": [2.386, 2.037, 2.047, 1.767, 1.937],
-        "poly": [2.074, 1.623, 1.802, 2.228, 1.802],
-    },
-    "ll": {"mono": [1.254, 1.524, 1.228], "poly": [1.371, 1.725, 1.232]},
-}
-
-data_build_release = {
-    "name": "spy build -x --timeit --release",
-    "app": {
-        "mono": [1.214, 0.914, 1.233, 0.924, 0.885],
-        "poly": [0.901, 0.833, 0.862, 0.916, 0.843],
-    },
-    "ll": {
-        "mono": [0.346, 0.328, 0.427, 0.341, 0.346],
-        "poly": [0.282, 0.251, 0.281, 0.287, 0.291],
-    },
-}
-
 parser = argparse.ArgumentParser()
 
 parser.add_argument(
     "-r", "--refs", nargs="+", help="Git references to compare", required=True
 )
-parser.add_argument("--ref-names", nargs="?", help="Strings to label the references")
+parser.add_argument("--ref-names", nargs="*", help="Strings to label the references")
 parser.add_argument(
     "-b",
     "--benchmarks",
@@ -67,7 +40,7 @@ parser.add_argument(
     help="Max time (in seconds) to reach each benchmark",
     default=120,
 )
-parser.add_argument("-v", "--verbose", action="store_true")
+parser.add_argument("-v", "--verbose", action="count")
 
 RunKind = Literal["interp", "build"]
 
@@ -84,7 +57,7 @@ class SingleResult:
 
 
 @contextmanager
-def temp_worktree():
+def temp_worktree(verbose: int = 0):
     with TemporaryDirectory() as tmp_dir:
         subprocess.run(["git", "worktree", "add", "--detach", tmp_dir])
         try:
@@ -96,11 +69,19 @@ def temp_worktree():
 pattern = re.compile(r"main\(\): (?P<time>\d+\.\d+) seconds")
 
 
-def get_time_from_output(inp: str) -> float | None:
+def get_time_from_output(inp: str) -> float:
     result = re.search(pattern, inp)
     if result is not None:
         return float(result.group("time"))
-    return None
+    return -1.0
+
+
+def run_in_dir(cmd: list[str], cwd: Path | str, verbose: int = 0):
+    if verbose >= 2:
+        capture_output = False
+    else:
+        capture_output = True
+    subprocess.run(cmd, cwd=cwd, capture_output=capture_output)
 
 
 def run_benchmarks_in_ref(
@@ -110,23 +91,25 @@ def run_benchmarks_in_ref(
     *,
     num_runs: int,
     timeout: int,
-    verbose=False,
+    verbose=0,
 ) -> list[SingleResult]:
-    if verbose:
+    if verbose > 0:
         output = lambda *a, **k: print(*a, **k)
     else:
         output = lambda *a, **k: None
 
     with temp_worktree() as tmp_dir:
-        subprocess.run(["git", "checkout", ref], cwd=tmp_dir)
-        subprocess.run(["uv", "sync", "--extra", "dev"], cwd=tmp_dir)
-        subprocess.run(["uv", "run", "make", "-C", "spy/libspy"], cwd=tmp_dir)
-        subprocess.run(["uv", "run", "spy", "cleanup"], cwd=tmp_dir)
-        print(f"Running tests in {tmp_dir}")
+        run_in_dir(["git", "checkout", ref], cwd=tmp_dir, verbose=verbose)
+        run_in_dir(["uv", "sync", "--extra", "dev"], cwd=tmp_dir, verbose=verbose)
+        run_in_dir(
+            ["uv", "run", "make", "-C", "spy/libspy"], cwd=tmp_dir, verbose=verbose
+        )
+        run_in_dir(["uv", "run", "spy", "cleanup"], cwd=tmp_dir, verbose=verbose)
+        output(f"Running tests in {tmp_dir}")
 
         results = []
         for bench in benchlist:
-            print(f"Running benchmark {bench}".center(80, "-"))
+            output(f"Running benchmark {bench}".center(80, "-"))
             for i in range(num_runs):
                 output(f"Interpreter run {i + 1: >3}: ")
                 raw_res_interp = subprocess.run(
@@ -144,14 +127,13 @@ def run_benchmarks_in_ref(
                         benchfile=bench,
                         ref=ref,
                         kind="interp",
-                        reported_time=time,
+                        reported_time=time if time else -1,
                         refname=refname,
-                        _raw_stdout=raw_res_interp.stdout,
-                        _raw_stderr=raw_res_interp.stderr,
+                        # _raw_stdout=raw_res_interp.stdout,
+                        # _raw_stderr=raw_res_interp.stderr,
                     )
                 )
                 output(f"{time} seconds")
-                breakpoint()
 
                 output(f"Build run {i + 1: >3}      :   ")
                 raw_res_build = subprocess.run(
@@ -175,76 +157,68 @@ def run_benchmarks_in_ref(
                 results.append(
                     SingleResult(
                         bench,
-                        "build",
-                        get_time_from_output(raw_res_build.stdout),
-                        raw_res_build.stdout,
-                        raw_res_build.stderr,
+                        ref=ref,
+                        kind="build",
+                        reported_time=get_time_from_output(raw_res_build.stdout),
+                        refname=refname,
+                        # _raw_stdout=raw_res_build.stdout,
+                        # _raw_stderr=raw_res_build.stderr,
                     )
                 )
                 output(f"{time} seconds")
-                breakpoint()
         return results
 
 
-def print_data(data: list[SingleResult]) -> None:
-    kinds = {sr.kind for sr in data}
+def print_data(all_results: list[SingleResult]) -> None:
+    kinds = {sr.kind for sr in all_results}
 
-    for kind in kinds:
-        kind_data = [sr for sr in data if sr.kind == kind]
-        refnames = {sr.refname for sr in kind_data}
-        headers = ["Benchmark", *refnames]
-        table = []
-        for bench in {sr.benchfile.name for sr in data}:
-            times = mean(sr.reported_time for sr in data)
-            table.append(
-                [
-                    bench,
-                    *times,
-                ]
-            )
-        print(f"{f' {kind} '.center(60, '.')}")
-        print(tabulate.tabulate(table, headers=headers))
+    for execution_kind in kinds:
+        # gather all runs of this kind
+        k_results = [sr for sr in all_results if sr.kind == execution_kind]
+        refnames_in_results = list({sr.refname for sr in k_results})
+        benchmarks = {sr.benchfile for sr in k_results}
 
-    # TODO more here. What follows was the first draft
-    return
-    for data in data_interpreter, data_build, data_build_release:
-        headers = ["Benchmark", "Applevel Algo", "LowLevel Algo", "Relative Time"]
+        headers = ["Benchmark", *refnames_in_results]
         table = []
-        for label in "mono", "poly":
-            mean_app = mean(data["app"].get(label))
-            mean_ll = mean(data["ll"].get(label))
-            table.append(
-                [
-                    label,
-                    f"{round(mean_app, 4)}s",
-                    f"{round(mean_ll, 4)}s",
-                    f"{round(100 * mean_ll / mean_app, 2)}%",
-                ]
-            )
-        print(tabulate.tabulate(table, headers=headers))
+
+        for bench in benchmarks:
+            line: list[Path | str] = [
+                (bench.name if isinstance(bench, Path) else bench)
+            ]
+            for refname in refnames_in_results:
+                ref_results = [sr for sr in k_results if sr.refname == refname]
+                times = [sr.reported_time for sr in ref_results if sr.reported_time > 0]
+                if times:
+                    line.append(f"{round(mean(times), 2)}s")
+                    meantime = mean(times)
+                else:
+                    line.append(f"nil")
+
+            table.append(line)
+
         print("\n\n")
+        print(f"{f' {execution_kind} '.center(60, '.')}")
+        print(tabulate.tabulate(table, headers=headers))
 
 
 def main():
     args = parser.parse_args()
     if args.ref_names is not None and len(args.ref_names) != len(args.refs):
-        raise argparse.ArgumentError("The number of refs and ref names must be equal")
+        raise ValueError("The number of refs and ref names must be equal")
     if args.ref_names is None:
-        args.ref_names = itertools.cycle([None])
+        args.ref_names = itertools.cycle(["<refname>"])
 
     exc_list: list[Exception] = []
     resolved = []
     for p in args.benchmarks:
         if not p.exists():
-            exc_list.append(argparse.ArgumentError(f"Path {p} does not exist"))
+            exc_list.append(ValueError(f"Path {p} does not exist"))
             continue
         if not p.is_file():
-            exc_list.append(
-                argparse.ArgumentError(f"Path {p} exists but does not refer to a file")
-            )
+            exc_list.append(ValueError(f"Path {p} exists but does not refer to a file"))
             continue
         if not p.suffix == ".spy":
-            exc_list.append(f"Only .spy files can be benchmarked; got {p}")
+            exc_list.append(ValueError(f"Only .spy files can be benchmarked; got {p}"))
             continue
         resolved.append(p.resolve())
     if exc_list:
