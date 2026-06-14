@@ -10,7 +10,6 @@ import re
 import subprocess
 from contextlib import contextmanager
 from dataclasses import dataclass
-from decimal import Decimal
 from pathlib import Path
 from statistics import mean
 from tempfile import TemporaryDirectory
@@ -78,7 +77,7 @@ class SingleResult:
     benchfile: Path | str
     ref: str
     kind: RunKind
-    reported_time: Decimal
+    reported_time: float
     refname: str = ""
     _raw_stdout: str = ""
     _raw_stderr: str = ""
@@ -97,16 +96,16 @@ def temp_worktree():
 pattern = re.compile(r"main\(\): (?P<time>\d+\.\d+) seconds")
 
 
-def get_time_from_output(inp: str) -> Decimal | None:
+def get_time_from_output(inp: str) -> float | None:
     result = re.search(pattern, inp)
     if result is not None:
-        return Decimal(result.group("time"))
+        return float(result.group("time"))
     return None
 
 
 def run_benchmarks_in_ref(
     ref: str,
-    ref_name: str,
+    refname: str,
     benchlist: list[Path],
     *,
     num_runs: int,
@@ -146,9 +145,9 @@ def run_benchmarks_in_ref(
                         ref=ref,
                         kind="interp",
                         reported_time=time,
-                        ref_name=ref_name,
+                        refname=refname,
                         _raw_stdout=raw_res_interp.stdout,
-                        _raw_srderr=raw_res_interp.stderr,
+                        _raw_stderr=raw_res_interp.stderr,
                     )
                 )
                 output(f"{time} seconds")
@@ -191,8 +190,20 @@ def print_data(data: list[SingleResult]) -> None:
     kinds = {sr.kind for sr in data}
 
     for kind in kinds:
-        ref_names = {sr.refname for sr in data}
+        kind_data = [sr for sr in data if sr.kind == kind]
+        refnames = {sr.refname for sr in kind_data}
+        headers = ["Benchmark", *refnames]
+        table = []
+        for bench in {sr.benchfile.name for sr in data}:
+            times = mean(sr.reported_time for sr in data)
+            table.append(
+                [
+                    bench,
+                    *times,
+                ]
+            )
         print(f"{f' {kind} '.center(60, '.')}")
+        print(tabulate.tabulate(table, headers=headers))
 
     # TODO more here. What follows was the first draft
     return
@@ -251,6 +262,8 @@ def main():
                 verbose=args.verbose,
             )
         )
+
+    print_data(results)
 
 
 if __name__ == "__main__":
