@@ -151,14 +151,14 @@ def run_benchmarks_in_ref(
                         benchfile=bench,
                         ref=ref,
                         kind="interp",
-                        reported_time=time if time else -1,
-                        # _raw_stdout=raw_res_interp.stdout,
-                        # _raw_stderr=raw_res_interp.stderr,
+                        reported_time=time,
+                        _raw_stdout=raw_res_interp.stdout,
+                        _raw_stderr=raw_res_interp.stderr,
                     )
                 )
                 output(f"{time} seconds")
 
-                output(f"Build run {i + 1: >3}      :   ")
+                output(f"Build       run {i + 1: >3}: ", end="")
                 raw_res_build = subprocess.run(
                     [
                         "uv",
@@ -182,9 +182,9 @@ def run_benchmarks_in_ref(
                         bench,
                         ref=ref,
                         kind="build",
-                        reported_time=get_time_from_output(raw_res_build.stdout),
-                        # _raw_stdout=raw_res_build.stdout,
-                        # _raw_stderr=raw_res_build.stderr,
+                        reported_time=time,
+                        _raw_stdout=raw_res_build.stdout,
+                        _raw_stderr=raw_res_build.stderr,
                     )
                 )
                 output(f"{time} seconds")
@@ -249,6 +249,7 @@ def main():
         raise ExceptionGroup("Encountered errors while gathering benchmarks", exc_list)
 
     results: list[SingleResult] = []
+    print("Setting up benchmarks run")
     for ref in refs:
         results.extend(
             run_benchmarks_in_ref(
