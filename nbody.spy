@@ -6,16 +6,22 @@
 # modified by Maciej Fijalkowski
 # modified by JeffGlass
 
+from math import pow
+
 body_type = tuple[tuple[float, float, float], tuple [float, float, float], float]
 
 @blue
 def combinations(l):
-    result = []
+    result: list[tuple[tuple[tuple[f64, f64, f64], tuple[f64, f64, f64], f64], tuple[tuple[f64, f64, f64], tuple[f64, f64, f64], f64]]] = []
     for x in range(len(l) - 1):
         ls = l[x+1:]
         for y in ls:
             result.append((l[x],y))
     return result
+
+#tuple[tuple[tuple[tuple[f64, f64, f64], tuple[f64, f64, f64], f64], tuple[tuple[f64, f64, f64], tuple[f64, f64, f64], f64]]]
+#tuple[tuple[tuple[f64, f64, f64], tuple[f64, f64, f64], f64], tuple[tuple[f64, f64, f64], tuple[f64, f64, f64], f64]]
+
 
 PI = 3.14159265358979323
 SOLAR_MASS = 4 * PI * PI
@@ -87,7 +93,7 @@ def advance(dt: float, n: int) -> None:
             dx = x1 - x2
             dy = y1 - y2
             dz = z1 - z2
-            mag = dt * ((dx * dx + dy * dy + dz * dz) ** (-1.5))
+            mag = dt * (pow(dx * dx + dy * dy + dz * dz) , (-1.5))
             b1m = m1 * mag
             b2m = m2 * mag
             v1[0] = v1[0] - dx * b2m
@@ -106,7 +112,7 @@ def advance(dt: float, n: int) -> None:
             r[2] = r[2] + dt * vz
 
 
-def report_energy():
+def report_energy() -> None:
     bodies=SYSTEM
     pairs=PAIRS
     e=0.0
@@ -132,7 +138,7 @@ def report_energy():
         dx = x1 - x2
         dy = y1 - y2
         dz = z1 - z2
-        e -= (m1 * m2) / ((dx * dx + dy * dy + dz * dz) ** 0.5)
+        e -= (m1 * m2) / pow((dx * dx + dy * dy + dz * dz) , 0.5)
     for body in bodies:
         #for (r, [vx, vy, vz], m) in bodies:
         vx = body[1][0]
@@ -142,26 +148,7 @@ def report_energy():
         e += m * (vx * vx + vy * vy + vz * vz) / 2.0
     print(e) # Formatting needed
 
-def offset_momentum(ref: dict[str, tuple]):
-    px=0.0
-    py=0.0
-    pz=0.0
-    bodies=SYSTEM
-    for body in bodies:
-        #for (r, [vx, vy, vz], m) in bodies:
-        vx = body[1][0]
-        vy = body[1][1]
-        vz = body[1][2]
-        m = body[2]
-        px -= vx * m
-        py -= vy * m
-        pz -= vz * m
-    m = ref[2]
-    v[0] = px /m
-    v[1] = py / m
-    v[2] = pz / m
-
-def main(argv: list[str]):
+def main(argv: list[str]) -> None:
     n: int
     report_energy()
     advance(0.01, n)
