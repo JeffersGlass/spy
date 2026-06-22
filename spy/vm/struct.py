@@ -298,11 +298,18 @@ class W_Struct(W_Object):
 
     def spy_key(self, vm: "SPyVM") -> Any:
         if not self.w_structtype.spy_key_is_valid:
-            # see the comment in W_StructType.define_from_classbody
-            T = self.w_structtype.fqn.human_name(vm)
-            raise WIP(
-                f"type {T} cannot be cached because it defines __eq__ or __ne__",
-            )
+            w_keyfunc = self.w_structtype.lookup_func(vm, "__key__")
+            if not w_keyfunc:
+                # see the comment in W_StructType.define_from_classbody
+                T = self.w_structtype.fqn.human_name(vm)
+                raise WIP(
+                    f"type {T} cannot be cached because it defines __eq__ or __ne__ and it does not define __key__",
+                )
+            res = vm._raw_call(w_keyfunc, [self])
+            ul = []  # TODO figure out how to unwrap without running into issues with List itself
+            return ("struct", self.w_structtype.spy_key(vm), *ul)
+
+        # spy_key_is_valid == True
         values_key = [w_val.spy_key(vm) for w_val in self.values_w.values()]
         return ("struct", self.w_structtype.spy_key(vm)) + tuple(values_key)
 

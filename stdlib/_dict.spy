@@ -279,6 +279,14 @@ def dict(Key, Value):
             else:
                 return OpSpec.NULL
 
+        def __key__(self) -> list[str]:
+            l: list[str] = []
+            for k in self.keys():
+                l.append(str(k))
+                l.append(str(self[k]))
+            return l
+
+
         def __setitem__(self, key: Key, value: Value) -> None:
             data: gc_ptr[DictData] = self.__ll__
             ix = lookup(data, key)
@@ -305,6 +313,12 @@ def dict(Key, Value):
 
         def keys(self) -> _dict:
             return self
+
+        def values(self) -> list[Value]:
+            res: list[Value] = []
+            for k in self.keys():
+                res.append(self[k])
+            return res
 
         def _push(self, key: Key, val: Value) -> _dict:
             self.__setitem__(key, val)
