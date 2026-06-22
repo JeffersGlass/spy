@@ -3,9 +3,9 @@ title: Struct Classes
 
 ...
 
-### Declaration
+## Declaration
 
-Struct classes are declared with the `@struct` decorator on the class definition. Their fixed list of fields follows with type annotations. Note that default values for these fields is not currently supported.
+Struct classes are declared with the `@struct` decorator on the class definition. Their fixed list of fields follows with type annotations. Note that default values for these fields are not currently supported.
 
 ```py
 @struct
@@ -18,7 +18,7 @@ def main() -> None:
     print(p.name, "is", p.age, "years old")
 ```
 
-### Attributes
+## Attributes
 
 Attributes of struct classes do not support assignment after creation. Using the same `point` class from above:
 
@@ -35,53 +35,49 @@ However, objects which are attributes of struct classes may be mutated:
 class Person:
     name: str
     age: int
-    books: list[LibraryBook]
+    books: list[str]
 
-
-@struct
-class LibraryBook:
-    title: str
-    ISBN: int
 
 def main() -> None:
     p = Person('Alice', 99, [])
-    print(p.name, "has", len(p.books), "books from the library") # Alice has 0 books from the library
+    print(p.name, "has", len(p.books), "book(s)") # Alice has 0 book(s)
 
-    p.books.append(LibraryBook("An Introduction to Python", 954161769))
-    print(p.name, "has", len(p.books), "books from the library") # Alice has 1 books from the library
+    p.books.append("An Introduction to Python")
+    print(p.name, "has", len(p.books), "book(s)") # Alice has 1 book(s)
 ```
 
-### Constructors
+## Constructors
 
-Struct classes use a default constructor which populates all their attributes in-order, and all attributes must be provided each time the constructor is called. E.g. the example above, the constructor `p = Person('Alice', 99, [])` requires an empty list to be passed for the `books` attribute. We can call this constructor explicitly using the `__make__` method:
-
-```py
-def main() -> None:
-    p = Person.__make__('Bob', 6, [])
-    print(p.age) # 6
-```
-
-User-facing constructors can be customized by overwriting the `__new__` method, which later calls `__make__` to handle the final construction of the complete struct. Note that `__new__` functions like a staticmethod (i.e. it does not take a `self` parameter)
+Struct classes use a default constructor which populates all their attributes in-order, and all attributes must be provided each time the default constructor is called. E.g. the example above, the constructor `p = Person('Alice', 99, [])` requires an empty list to be passed for the `books` attribute. We can call this constructor explicitly using the `__make__` method:
 
 ```py
 @struct
 class Person:
     name: str
     age: int
-    books: list[LibraryBook]
+    books: list[str]
+
+def main() -> None:
+    p = Person.__make__('Bob', 6, [])
+    print(p.age) # 6
+```
+
+User-facing constructors can be customized by overwriting the `__new__` method, the `__make__` must be called within to handle the final construction of the complete struct. Note that `__new__` functions like a staticmethod (i.e. it does not take a `self` parameter)
+
+```py
+@struct
+class Person:
+    name: str
+    age: int
+    books: list[str]
 
     def __new__(name: str, age: int) -> Person:
-        _books: list[LibraryBook] = []
+        _books: list[str] = []
         return Person.__make__(name, age, _books)
-
-@struct
-class LibraryBook:
-    title: str
-    ISBN: int
 
 def main() -> None:
     p = Person('Alice', 99)
-    print(p.name, "has", len(p.books), "books from the library") # Alice has 0 books from the library
+    print(p.name, "has", len(p.books), "books") # Alice has 0 books
 ```
 
 <!-- 
@@ -89,7 +85,7 @@ def main() -> None:
     like `str | None` is available.
 -->
 
-### Methods
+## Methods
 
 Struct classes may have methods defined inside their class body; the struct object itself is passed as the first parameter (usually called `self`), just as in CPython:
 
@@ -97,39 +93,38 @@ Struct classes may have methods defined inside their class body; the struct obje
 @struct
 class Person:
     name: str
-    age: int
     
-    def say_hi_to(self, other: str) -> None:
-        print("Hi " + other + "! My name is " + self.name + " and I am " + str(self.age) + " years old")
+    def say_hi_to(self, other: Person) -> None:
+        print("Hi " + other.name + "! My name is " + self.name)
 
     def is_teenager(self) -> bool:
         return 13 <= self.age and self.age <= 19
 
 def main() -> None:
-    p = Person("Charlie", 55)
-    p.say_hi_to("Donna")      # Hi Donna! My name is Charlie and I am 55 years old
-    print(p.is_teenager())    # False
+    c = Person("Charlie", 55)
+    c.say_hi_to(Person("Donna", 57))     # Hi Donna! My name is Charlie
+    print(c.is_teenager())               # False
 ```
 
 Methods may also be [blue functions](../reference/spy_builtin_functions.md#blue), [generic blue functions](../reference/spy_builtin_functions.md#bluegeneric), or [metafunctions](../reference/spy_builtin_functions.md#bluemetafunc).
 
-### Special Methods
+## Special Methods
 
 Struct classes may have the following double-underscope methods overridden:
 
-#### `__str__(self) -> str`
+### `__str__(self) -> str`
 
 Called to implement the builtin [`str()`](../reference/python_builtins.md#strobject) is called on this object.
 
-#### `__repr__(self) -> str`
+### `__repr__(self) -> str`
 
 Called to implement the builtin [`repr()`](../reference/python_builtins.md#reprobject) is called on this object, either explicitly or as part of printing another object.
 
-#### `__len__(self) -> int`
+### `__len__(self) -> int`
 
 Called to implement the builtin [`len()`](../reference/python_builtins.md#lenobject) is called on this object; represents the number of objects in a container:
 
-#### `__getitem__(self, i: int) -> Object`
+### `__getitem__(self, i: int) -> Object`
 
 Called to implement subscription; that is, `self[subscript]`. Often used to retrieve the i-th object in a collection. In SPy, the return value is often typed as part of a [Generic Class](../howto/generics.md#generic-class-syntax):
 
@@ -157,14 +152,14 @@ def main() -> None:
     # humidity : 43.2
 ```
 
-#### `__setitem__(self, i: int, value: Object ) -> Object`
+### `__setitem__(self, i: int, value: Object ) -> Object`
 
 Set the i-th object in a collection. In SPy, the return value is often typed as part of a [Generic Class](../howto/generics.md#generic-class-syntax).
 
-#### Conversion Functions
+## Conversion Methods
 
-##### `__convert_to__(m_expT, m_gotT, m_x) -> Object`
-##### `__convert_from__(m_expT, m_gotT, m_x) -> Object`
+### `__convert_to__(m_expT, m_gotT, m_x) -> Object`
+### `__convert_from__(m_expT, m_gotT, m_x) -> Object`
 
 Both `__convert_to__` and `__convert_from__` are Metafuncs which may be defined on a type to provide an explicit method of conversion to another type.
 
@@ -210,7 +205,7 @@ def main() -> None:
     print(sillier.content) # aaaa
 ```
 
-#### `__call__(self, [args])`
+## `__call__(self, [args])`
 
 Called when the instance is called as a function.
 
@@ -227,15 +222,19 @@ def main() -> None:
     p() # Ring ring! You called Edgar
 ```
 
-#### Binary Operators
+## Binary Operators
 
 The following double-underscore binary operators may be overridden; their behavior is the same as in [CPython](https://docs.python.org/3/reference/datamodel.html#basic-customization): `__sub__`, `__mul__`, `__div__`, `__floordiv__`, `__mod__`, `__lshift__`, `__rshift__`, `__and__`, `__or__`, `__xor__`, `__eq__`, `__ne__`, `__lt__`, `__le__`, `__gt__`, `__ge__`, 
 
-#### Unary Operators
+## Unary Operators
 
 The following double-underscore unary operators may be overridden; their behavior is the same as in [CPython](): `__neg__`.
 
-#### Descriptors
+## Attribute Access
+
+### `__getattribute__(self, name: str)`
+
+### `__getattr__(self, name: str)`
 
 <!-- 
 
