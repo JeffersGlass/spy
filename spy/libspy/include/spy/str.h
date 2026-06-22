@@ -50,8 +50,13 @@ SPY_PTR_FUNCTIONS(gc, spy_unsafe$gc_ptr___str$StrObject, spy_StrObject)
 typedef spy_unsafe$gc_ptr___str$StrObject spy_gc_ptr_StrObject;
 
 static inline spy_gc_ptr_StrObject
-spy_unsafe$as_StrObject$impl(spy_StrObject *s) {
+spy_unsafe$_str_to_StrObject$impl(spy_StrObject *s) {
     return spy_unsafe$gc_ptr___str$StrObject_from_addr(s);
+}
+
+static inline spy_StrObject *
+spy_unsafe$_StrObject_to_str$impl(spy_gc_ptr_StrObject p) {
+    return p.p;
 }
 
 /* SPY_STR_LITERAL(N, "content") is a struct initializer for spy_StrObject,
@@ -85,15 +90,10 @@ _spy_StrObject_Layout WASM_EXPORT(_spy_StrObject_layout)(void);
 
 spy_StrObject *WASM_EXPORT(spy_str_alloc)(size_t length);
 
-spy_StrObject *WASM_EXPORT(spy_str_add)(spy_StrObject *a, spy_StrObject *b);
-
-spy_StrObject *WASM_EXPORT(spy_str_replace)(
-    spy_StrObject *original,
-    spy_StrObject *old,
-    spy_StrObject *new_str
-);
-
-spy_StrObject *WASM_EXPORT(spy_str_mul)(spy_StrObject *a, int32_t b);
+static inline spy_gc_ptr_StrObject
+spy_unsafe$_alloc_StrObject$impl(int32_t length) {
+    return spy_unsafe$gc_ptr___str$StrObject_from_addr(spy_str_alloc((size_t)length));
+}
 
 bool WASM_EXPORT(spy_str_eq)(spy_StrObject *a, spy_StrObject *b);
 
@@ -102,25 +102,12 @@ spy_str_ne(spy_StrObject *a, spy_StrObject *b) {
     return !spy_str_eq(a, b);
 }
 
-// XXX: should we introduce a separate type Char?
-spy_StrObject *WASM_EXPORT(spy_str_getitem)(spy_StrObject *s, int32_t i);
-
-int32_t WASM_EXPORT(spy_str_len)(spy_StrObject *s);
-
-spy_StrObject *WASM_EXPORT(spy_str_repr)(spy_StrObject *s);
-
 int32_t WASM_EXPORT(spy_str_hash)(spy_StrObject *s);
 
-#define spy_operator$str_add spy_str_add
-#define spy_operator$str_mul spy_str_mul
 #define spy_operator$str_eq spy_str_eq
 #define spy_operator$str_ne spy_str_ne
 #define spy_operator$str_to_complex128 spy_str_to_complex128
-#define spy_builtins$str$replace spy_str_replace
-#define spy_builtins$str$__getitem__ spy_str_getitem
-#define spy_builtins$str$__len__ spy_str_len
 #define spy_builtins$str$__str__ spy_str_identity
-#define spy_builtins$str$__repr__ spy_str_repr
 
 static inline spy_StrObject *
 spy_str_identity(spy_StrObject *s) {
@@ -135,9 +122,23 @@ spy_StrObject *spy_builtins$i8$__str__(int8_t x);
 
 spy_StrObject *spy_builtins$u8$__str__(uint8_t x);
 
+spy_StrObject *spy_builtins$u32$__str__(uint32_t x);
+
+spy_StrObject *spy_builtins$i64$__str__(int64_t x);
+
+spy_StrObject *spy_builtins$u64$__str__(uint64_t x);
+
 spy_StrObject *spy_builtins$f64$__str__(double x);
 
 spy_StrObject *spy_builtins$bool$__str__(bool x);
+
+// for the numeric types, __repr__ is the same as __str__
+#define spy_builtins$i32$__repr__ spy_builtins$i32$__str__
+#define spy_builtins$i8$__repr__ spy_builtins$i8$__str__
+#define spy_builtins$u8$__repr__ spy_builtins$u8$__str__
+#define spy_builtins$u32$__repr__ spy_builtins$u32$__str__
+#define spy_builtins$i64$__repr__ spy_builtins$i64$__str__
+#define spy_builtins$u64$__repr__ spy_builtins$u64$__str__
 
 // str -> numeric conversion operators
 int32_t spy_operator$str_to_i32(spy_StrObject *s);
@@ -147,6 +148,10 @@ uint32_t spy_operator$str_to_u32(spy_StrObject *s);
 int8_t spy_operator$str_to_i8(spy_StrObject *s);
 
 uint8_t spy_operator$str_to_u8(spy_StrObject *s);
+
+int64_t spy_operator$str_to_i64(spy_StrObject *s);
+
+uint64_t spy_operator$str_to_u64(spy_StrObject *s);
 
 spy_Complex128 WASM_EXPORT(spy_str_to_complex128)(spy_StrObject *s);
 
