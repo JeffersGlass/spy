@@ -5,6 +5,7 @@ from spy.cli.commands.build import build
 from spy.cli.commands.cleanup import cleanup
 from spy.cli.commands.colorize import colorize
 from spy.cli.commands.execute import execute
+from spy.cli.commands.format import format
 from spy.cli.commands.imports import imports
 from spy.cli.commands.parse import parse
 from spy.cli.commands.pyparse import pyparse
@@ -26,12 +27,13 @@ app = SpyTyper(
 
 # This is the order commands will appear in the --help
 
-app.spy_command(execute, name="execute", default=True)
-app.spy_command(build, name="build")
-app.spy_command(redshift, name="redshift | rs")
+app.spy_command(execute, name="execute", default=True, strict_argv=True)
+app.spy_command(build, name="build", strict_argv=True)
+app.spy_command(redshift, name="redshift | rs", strict_argv=True)
 app.spy_command(colorize, name="colorize")
 app.spy_command(parse, name="parse")
 app.spy_command(pyparse, name="pyparse")
 app.spy_command(imports, name="imports")
 app.spy_command(symtable, name="symtable")
 app.spy_command(cleanup, name="cleanup")
+app.spy_command(format, name="format")
