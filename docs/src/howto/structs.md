@@ -20,7 +20,7 @@ def main() -> None:
 
 ### Attributes
 
-Attributes of struct classes do not support assignment after creation. Using the same `point` class from above`:
+Attributes of struct classes do not support assignment after creation. Using the same `point` class from above:
 
 ```py
 def main() -> None:
@@ -111,23 +111,27 @@ def main() -> None:
     print(p.is_teenager())    # False
 ```
 
+Methods may also be [blue functions](../reference/spy_builtin_functions.md#blue), [generic blue functions](../reference/spy_builtin_functions.md#bluegeneric), or [metafunctions](../reference/spy_builtin_functions.md#bluemetafunc).
+
+### Special Methods
+
 Struct classes may have the following double-underscope methods overridden:
 
 #### `__str__(self) -> str`
 
-The string to return when [`str()`](../reference/python_builtins.md#strobject) is called on this object.
+Called to implement the builtin [`str()`](../reference/python_builtins.md#strobject) is called on this object.
 
 #### `__repr__(self) -> str`
 
-The string to return when [`repr()`](../reference/python_builtins.md#reprobject) is called on this object, either explicitly or as part of printing another object.
+Called to implement the builtin [`repr()`](../reference/python_builtins.md#reprobject) is called on this object, either explicitly or as part of printing another object.
 
 #### `__len__(self) -> int`
 
-The value to return when  [`len()`](../reference/python_builtins.md#lenobject) is called on this object; represents the number of objects in a container:
+Called to implement the builtin [`len()`](../reference/python_builtins.md#lenobject) is called on this object; represents the number of objects in a container:
 
 #### `__getitem__(self, i: int) -> Object`
 
-Retrieve the i-th object in a collection. In SPy, the return value is often typed as part of a [Generic Class](../howto/generics.md#generic-class-syntax):
+Called to implement subscription; that is, `self[subscript]`. Often used to retrieve the i-th object in a collection. In SPy, the return value is often typed as part of a [Generic Class](../howto/generics.md#generic-class-syntax):
 
 ```py
 @struct
@@ -206,6 +210,22 @@ def main() -> None:
     print(sillier.content) # aaaa
 ```
 
+#### `__call__(self, [args])`
+
+Called when the instance is called as a function.
+
+```py
+@struct
+class CallablePerson:
+    name: str
+
+    def __call__(self) -> None:
+        print("Ring ring! You called", self.name)
+
+def main() -> None:
+    p = CallablePerson("Edgar")
+    p() # Ring ring! You called Edgar
+```
 
 #### Binary Operators
 
@@ -213,13 +233,13 @@ The following double-underscore binary operators may be overridden; their behavi
 
 #### Unary Operators
 
-The following double-underscore unary operators may be overridden; their behavior is the same as in [CPython]
+The following double-underscore unary operators may be overridden; their behavior is the same as in [CPython](): `__neg__`.
 
 #### Descriptors
 
-#### `__get__(self, v: )
-
 <!-- 
+
+#### `__get__(self, v: )
 
 Comment from operator/attrop.py
 

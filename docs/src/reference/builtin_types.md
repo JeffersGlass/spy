@@ -5,6 +5,41 @@ title: Built-in Types
 
 Types are first class objects in SPy - they can be passed, modified, printed etc. just like any other object. The dynamic type of an object can be retrieved using the [type()](../reference/python_builtins.md#typeobject) builtin
 
+### `__call_method__`
+
+Types may implement the `__call_method__` metafunc to implement custom behavior when certain methods are called. 
+
+/// note | Usage
+In the SPy standard library, this is used to special case types like the type of the Empty List, which wants to behave like a list in some contexts, but cannot be mutated until a type has been specified.
+///
+
+### 
+
+```py
+@struct 
+class FrozenList:
+    values: list[int]
+    
+    @blue.metafunc
+    def __call_method__(m_self, m_name, *args_m):
+        name = m_name.blueval
+        if not (name == "__getitem__" or name == "copy" or name == "index"):
+            raise TypeError("This list is frozen!")
+        
+        return OpSpec(m_self.__call__, [m_name] + args_m)
+
+    def __getitem__(self, i: int) -> int:
+        return self.values[i]
+
+
+def main() -> None:
+    b = FrozenList([0,1,2,3])
+    print(b[2]) # 2
+    b.append(5) # TypeError: This list is frozen!
+```
+
+### Name Attributes
+
 SPy types have attributes that are not present on other objects for identifying the type by name, either for human-readability or identifying the functions origin. A brief example:
 
 ```py
