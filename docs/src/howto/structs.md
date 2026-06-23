@@ -1,7 +1,7 @@
 title: Struct Classes
 ---
 
-...
+Struct classes (currently the only classes in SPy) are immutable data structures analagous to C structs. 
 
 ## Declaration
 
@@ -17,6 +17,8 @@ def main() -> None:
     p = Person('Alice', 99)
     print(p.name, "is", p.age, "years old")
 ```
+
+Struct classes may also be defined with the [generic class syntax](../howto/generics.md#generic-class-syntax), which is syntactic sugar for a generic function which defines an internal struct. See the [generics](../howto/generics.md) documentation for more info.
 
 ## Attributes
 
@@ -62,7 +64,7 @@ def main() -> None:
     print(p.age) # 6
 ```
 
-User-facing constructors can be customized by overwriting the `__new__` method, the `__make__` must be called within to handle the final construction of the complete struct. Note that `__new__` functions like a staticmethod (i.e. it does not take a `self` parameter)
+User-facing constructors can be customized by overwriting the `__new__` method; the `__make__` must be called within to handle the initialization of the complete struct. Note that `__new__` functions like a staticmethod (it does not take a `self` parameter)
 
 ```py
 @struct
