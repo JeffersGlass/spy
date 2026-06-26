@@ -8,15 +8,15 @@
 
 from math import pow
 
-body_type = tuple[tuple[float, float, float], tuple [float, float, float], float]
+body_type = tuple[list[float], list[float], float]
 
-@blue
-def combinations(l):
-    result = []
+def combinations(l: list[body_type]) -> list[tuple[body_type, body_type]]:
+    result: list[tuple[body_type, body_type]] = []
     for x in range(len(l) - 1):
         ls = l[x+1:]
         for y in ls:
-            result.append((l[x],y))
+            if y != l[x]:
+                result.append((l[x],y))
     return result
 
 
@@ -71,7 +71,6 @@ def advance(dt: float, n: int) -> None:
     for i in range(n):
         for p in pairs:
             #for (([x1, y1, z1], v1, m1), ([x2, y2, z2], v2, m2)) in pairs:
-            
             body1 = p[0]
             coords1 = body1[0]
             x1 = coords1[0]
@@ -91,7 +90,7 @@ def advance(dt: float, n: int) -> None:
             dx = x1 - x2
             dy = y1 - y2
             dz = z1 - z2
-            mag = dt * (pow(dx * dx + dy * dy + dz * dz) , (-1.5))
+            mag = dt * pow(dx * dx + dy * dy + dz * dz, -1.5)
             b1m = m1 * mag
             b2m = m2 * mag
             v1[0] = v1[0] - dx * b2m
@@ -105,9 +104,9 @@ def advance(dt: float, n: int) -> None:
             vx = body[1][0]
             vy = body[1][1]
             vz = body[1][2]
-            r[0] = r[0] + dt * vx
-            r[1] = r[1] + dt * vy
-            r[2] = r[2] + dt * vz
+            body[0][0] = body[0][0] + dt * vx
+            body[0][1] = body[0][1] + dt * vy
+            body[0][2] = body[0][2] + dt * vz
 
 
 def report_energy() -> None:
@@ -145,6 +144,23 @@ def report_energy() -> None:
         m = body[2]
         e += m * (vx * vx + vy * vy + vz * vz) / 2.0
     print(e) # Formatting needed
+
+def offset_momentum(ref: body_type, bodies: list[body_type]=SYSTEM, px: float =0.0, py: float =0.0, pz: float =0.0) -> None:
+
+    #for (r, [vx, vy, vz], m) in bodies:
+    for b in bodies:
+        r = b[0]
+        vx = b[1][0]
+        vy = b[1][1]
+        vz = b[1][2]
+        m = b[2]
+        px -= vx * m
+        py -= vy * m
+        pz -= vz * m
+    #(r, v, m) = ref
+    ref[1][0] = px / m
+    ref[1][1] = py / m
+    ref[1][2] = pz / m
 
 def main(argv: list[str]) -> None:
     n: int = int(argv[1])

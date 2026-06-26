@@ -331,11 +331,11 @@ def list(T):
             ptr_move_slice(ll.items, idx, ll.length - 1, ll.items, idx + 1, ll.length)
             ll.length = ll.length - 1
 
-        # def __key__(self) -> list[str]:
-        #     l: list[str] = []
-        #     for v in self:
-        #         l.append(str(v))
-        #     return l
+        def __key__(self) -> interp_list[str]:
+            l: interp_list[str] = []
+            for v in self:
+                l.append(str(v))
+            return l
 
         @blue.metafunc
         def __eq__(m_self, m_other):

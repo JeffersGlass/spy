@@ -306,7 +306,7 @@ class W_Struct(W_Object):
                     f"type {T} cannot be cached because it defines __eq__ or __ne__ and it does not define __key__",
                 )
             res = vm._raw_call(w_keyfunc, [self])
-            ul = []  # TODO figure out how to unwrap without running into issues with List itself
+            ul = unwrap_list(vm, res)
             return ("struct", self.w_structtype.spy_key(vm), *ul)
 
         # spy_key_is_valid == True
