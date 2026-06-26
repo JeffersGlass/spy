@@ -10,6 +10,10 @@ from math import pow
 
 body_type = tuple[list[float], list[float], float]
 
+PI = 3.14159265358979323
+SOLAR_MASS = 4 * PI * PI
+DAYS_PER_YEAR = 365.24
+
 def combinations(l: list[body_type]) -> list[tuple[body_type, body_type]]:
     result: list[tuple[body_type, body_type]] = []
     for x in range(len(l) - 1):
@@ -20,54 +24,7 @@ def combinations(l: list[body_type]) -> list[tuple[body_type, body_type]]:
     return result
 
 
-
-PI = 3.14159265358979323
-SOLAR_MASS = 4 * PI * PI
-DAYS_PER_YEAR = 365.24
-
-
-BODIES = {
-    'sun': ([0.0, 0.0, 0.0], [0.0, 0.0, 0.0], SOLAR_MASS),
-
-    'jupiter': ([4.84143144246472090e+00,
-                 -1.16032004402742839e+00,
-                 -1.03622044471123109e-01],
-                [1.66007664274403694e-03 * DAYS_PER_YEAR,
-                 7.69901118419740425e-03 * DAYS_PER_YEAR,
-                 -6.90460016972063023e-05 * DAYS_PER_YEAR],
-                9.54791938424326609e-04 * SOLAR_MASS),
-
-    'saturn': ([8.34336671824457987e+00,
-                4.12479856412430479e+00,
-                -4.03523417114321381e-01],
-               [-2.76742510726862411e-03 * DAYS_PER_YEAR,
-                4.99852801234917238e-03 * DAYS_PER_YEAR,
-                2.30417297573763929e-05 * DAYS_PER_YEAR],
-               2.85885980666130812e-04 * SOLAR_MASS),
-
-    'uranus': ([1.28943695621391310e+01,
-                -1.51111514016986312e+01,
-                -2.23307578892655734e-01],
-               [2.96460137564761618e-03 * DAYS_PER_YEAR,
-                2.37847173959480950e-03 * DAYS_PER_YEAR,
-                -2.96589568540237556e-05 * DAYS_PER_YEAR],
-               4.36624404335156298e-05 * SOLAR_MASS),
-
-    'neptune': ([1.53796971148509165e+01,
-                 -2.59193146099879641e+01,
-                 1.79258772950371181e-01],
-                [2.68067772490389322e-03 * DAYS_PER_YEAR,
-                 1.62824170038242295e-03 * DAYS_PER_YEAR,
-                 -9.51592254519715870e-05 * DAYS_PER_YEAR],
-                5.15138902046611451e-05 * SOLAR_MASS) }
-
-
-SYSTEM = BODIES.values()
-PAIRS = combinations(SYSTEM)
-
-def advance(dt: float, n: int) -> None:
-    bodies=SYSTEM
-    pairs=PAIRS
+def advance(dt: float, n: int, bodies: list[body_type], pairs: list[tuple[body_type, body_type]]) -> None:
     for i in range(n):
         for p in pairs:
             #for (([x1, y1, z1], v1, m1), ([x2, y2, z2], v2, m2)) in pairs:
@@ -109,9 +66,7 @@ def advance(dt: float, n: int) -> None:
             body[0][2] = body[0][2] + dt * vz
 
 
-def report_energy() -> None:
-    bodies=SYSTEM
-    pairs=PAIRS
+def report_energy(bodies: list[body_type], pairs: list[tuple[body_type, body_type]]) -> None:
     e=0.0
 
     for p in pairs:
@@ -136,17 +91,18 @@ def report_energy() -> None:
         dy = y1 - y2
         dz = z1 - z2
         e -= (m1 * m2) / pow((dx * dx + dy * dy + dz * dz) , 0.5)
+
     for body in bodies:
         #for (r, [vx, vy, vz], m) in bodies:
         vx = body[1][0]
         vy = body[1][1]
         vz = body[1][2]
         m = body[2]
-        e += m * (vx * vx + vy * vy + vz * vz) / 2.0
-    print(e) # Formatting needed
+        _val = m * (vx * vx + vy * vy + vz * vz) / 2.0
+        e += _val
+    print(e)
 
-def offset_momentum(ref: body_type, bodies: list[body_type]=SYSTEM, px: float =0.0, py: float =0.0, pz: float =0.0) -> None:
-
+def offset_momentum(ref: body_type, bodies: list[body_type], px: float =0.0, py: float =0.0, pz: float =0.0) -> None:
     #for (r, [vx, vy, vz], m) in bodies:
     for b in bodies:
         r = b[0]
@@ -157,15 +113,57 @@ def offset_momentum(ref: body_type, bodies: list[body_type]=SYSTEM, px: float =0
         px -= vx * m
         py -= vy * m
         pz -= vz * m
+        
     #(r, v, m) = ref
+    m = ref[2]
     ref[1][0] = px / m
     ref[1][1] = py / m
     ref[1][2] = pz / m
 
+
 def main(argv: list[str]) -> None:
+    BODIES = {
+        'sun': ([0.0, 0.0, 0.0], [0.0, 0.0, 0.0], SOLAR_MASS),
+
+        'jupiter': ([4.84143144246472090e+00,
+                    -1.16032004402742839e+00,
+                    -1.03622044471123109e-01],
+                    [1.66007664274403694e-03 * DAYS_PER_YEAR,
+                    7.69901118419740425e-03 * DAYS_PER_YEAR,
+                    -6.90460016972063023e-05 * DAYS_PER_YEAR],
+                    9.54791938424326609e-04 * SOLAR_MASS),
+
+        'saturn': ([8.34336671824457987e+00,
+                    4.12479856412430479e+00,
+                    -4.03523417114321381e-01],
+                [-2.76742510726862411e-03 * DAYS_PER_YEAR,
+                    4.99852801234917238e-03 * DAYS_PER_YEAR,
+                    2.30417297573763929e-05 * DAYS_PER_YEAR],
+                2.85885980666130812e-04 * SOLAR_MASS),
+
+        'uranus': ([1.28943695621391310e+01,
+                    -1.51111514016986312e+01,
+                    -2.23307578892655734e-01],
+                [2.96460137564761618e-03 * DAYS_PER_YEAR,
+                    2.37847173959480950e-03 * DAYS_PER_YEAR,
+                    -2.96589568540237556e-05 * DAYS_PER_YEAR],
+                4.36624404335156298e-05 * SOLAR_MASS),
+
+        'neptune': ([1.53796971148509165e+01,
+                    -2.59193146099879641e+01,
+                    1.79258772950371181e-01],
+                    [2.68067772490389322e-03 * DAYS_PER_YEAR,
+                    1.62824170038242295e-03 * DAYS_PER_YEAR,
+                    -9.51592254519715870e-05 * DAYS_PER_YEAR],
+                    5.15138902046611451e-05 * SOLAR_MASS) }
+
+
+    SYSTEM = BODIES.values()
+    PAIRS = combinations(SYSTEM)
+
     n: int = int(argv[1])
-    ref: str = argv[2]
-    offset_momentum(BODIES[ref])
-    report_energy()
-    advance(0.01, n)
-    report_energy()
+    ref = "sun"
+    offset_momentum(BODIES[ref], SYSTEM)
+    report_energy(SYSTEM, PAIRS)
+    advance(0.01, n, SYSTEM, PAIRS)
+    report_energy(SYSTEM, PAIRS)

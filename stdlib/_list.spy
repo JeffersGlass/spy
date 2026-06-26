@@ -25,6 +25,9 @@ def list(T):
         capacity: i32
         items: gc_ptr[T]
 
+        def __new__(length: int) -> ListData:
+            return ListData.__make__(length, length, gc_alloc[T](length))
+
     @struct
     class list_iterator:
         lst: gc_ptr[ListData]
@@ -331,12 +334,20 @@ def list(T):
             ptr_move_slice(ll.items, idx, ll.length - 1, ll.items, idx + 1, ll.length)
             ll.length = ll.length - 1
 
-        def __key__(self) -> interp_list[str]:
-            l: interp_list[str] = []
-            for v in self:
-                l.append(str(v))
-            return l
+        def __key__(self) -> _ListImpl:
+            # Manually make a _ListImpl to avoid recursion erro with a list
+            data = gc_alloc[ListData](1)
+            data.length = len(self)
+            data.capacity = len(self)
+            d_items = gc_alloc[T](data.length)
 
+            i = 0
+            for v in self:
+                d_items[i] = v
+                i += 1
+            
+            return _ListImpl.__make__(data)
+            
         @blue.metafunc
         def __eq__(m_self, m_other):
             if m_other.static_type == m_self.static_type:

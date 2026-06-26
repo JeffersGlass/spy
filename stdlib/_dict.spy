@@ -283,7 +283,7 @@ def dict(Key, Value):
             l: list[str] = []
             for k in self.keys():
                 l.append(str(k))
-                l.append(str(self[k]))
+                #l.append(str(self[k]))
             return l
 
 
