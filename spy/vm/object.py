@@ -571,18 +571,12 @@ class W_Type(W_Object):
             from spy.analyze.scope import ScopeAnalyzer
             from spy.vm.function import W_ASTFunc
 
-            call = ast.Call(
+            literal = ast.StrLiteral(
                 loc=Loc.here(),
-                func=ast.Name(Loc.here(), id="str"),
-                args=[
-                    ast.StrLiteral(
-                        loc=Loc.here(),
-                        value=f"<spy {str(self.spy_get_w_type(vm))} object",
-                    ),
-                ],
+                value=f"<spy {self.fqn.human_symbol_name(vm)} object>",
             )
 
-            stmt = ast.Return(Loc.here(), call)
+            stmt = ast.Return(Loc.here(), literal)
 
             from spy.vm.function import FuncParam, W_FuncType
             from spy.vm.str import W_Str
