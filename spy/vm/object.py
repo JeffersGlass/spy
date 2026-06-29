@@ -44,6 +44,7 @@ For simple cases, SPy app-level types are instances of W_Type, which is
 basically a thin wrapper around the correspindig interp-level W_* class.
 """
 
+import functools
 import typing
 from dataclasses import dataclass
 from dataclasses import field as dataclass_field
@@ -61,6 +62,7 @@ from typing import (
     Union,
 )
 
+import spy.ast as ast
 from spy.ast import Color
 from spy.errors import WIP, SPyError
 from spy.fqn import FQN
@@ -70,7 +72,7 @@ from spy.vm.b import B
 if TYPE_CHECKING:
     from spy.vm.builtin import FuncKind
     from spy.vm.field import W_Field
-    from spy.vm.function import W_Func
+    from spy.vm.function import W_ASTFunc, W_Func
     from spy.vm.opspec import W_MetaArg, W_OpSpec
     from spy.vm.primitive import W_Bool, W_Dynamic, W_NoneType
     from spy.vm.str import W_Str
@@ -400,7 +402,12 @@ class W_Object:
         raise NotImplementedError("this should never be called")
 
 
-class W_LazyAttr(W_Object):
+class W_Lazy(W_Object):
+    def load(self, vm: "SPyVM") -> W_Object:
+        raise NotImplementedError("Override in subclass")
+
+
+class W_LazyAttr(W_Lazy):
     """
     Special object stored in W_Type.dict_w for lazy loading stdlib methods.
     See also __spy_lazy_attributes__.
@@ -414,6 +421,19 @@ class W_LazyAttr(W_Object):
     def load(self, vm: "SPyVM") -> W_Object:
         vm.import_(self.fqn.modname)
         return vm.lookup_global(self.fqn)
+
+
+class W_LazyASTFunc(W_Lazy):
+    __spy_storage_category__ = "reference"
+
+    def __init__(
+        self, _type: W_Type, func_factory: Callable[[W_Type, "SPyVM"], W_ASTFunc]
+    ) -> None:
+        self._type = _type
+        self.func_factory = func_factory
+
+    def load(self, vm: "SPyVM") -> W_Object:
+        return self.func_factory(self._type, vm)
 
 
 class W_Type(W_Object):
@@ -543,6 +563,75 @@ class W_Type(W_Object):
         if pyclass.__spy_storage_category__ == "value":
             # autogen __eq__ and __ne__ if possible
             self._add_eq_ne_maybe(pyclass)
+
+        def _create_generic_repr(self: "W_Type", vm: "SPyVM") -> W_ASTFunc:
+            """
+            Generic a __repr__ method as an ASTFunc.
+            """
+            from spy.analyze.scope import ScopeAnalyzer
+            from spy.vm.function import W_ASTFunc
+
+            call = ast.Call(
+                loc=Loc.here(),
+                func=ast.Name(Loc.here(), id="str"),
+                args=[
+                    ast.StrLiteral(
+                        loc=Loc.here(),
+                        value=f"<spy {str(self.spy_get_w_type(vm))} object",
+                    ),
+                ],
+            )
+
+            stmt = ast.Return(Loc.here(), call)
+
+            from spy.vm.function import FuncParam, W_FuncType
+            from spy.vm.str import W_Str
+
+            self_type = ast.FQNConst(Loc.here(), self.fqn)
+
+            funcdef = ast.FuncDef(
+                loc=Loc.here(),
+                color="blue",
+                kind="plain",
+                name="__repr__",
+                args=[
+                    ast.FuncArg(Loc.here(), "self", self_type, "simple"),
+                ],
+                return_type=ast.FQNConst(Loc.here(), FQN("builtins::str")),
+                defaults=[],
+                docstring=None,
+                body=[stmt],
+                decorators=[],
+            )
+
+            # create a fake module so that we can run ScopeAnalyzer
+            module = ast.Module(
+                loc=Loc.here(),
+                filename="<generated>",
+                docstring=None,
+                decls=[ast.GlobalFuncDef(Loc.here(), funcdef)],
+            )
+            analyzer = ScopeAnalyzer(self.fqn.modname, module)
+            analyzer.analyze()
+
+            params = [FuncParam(self, "simple")]
+            r_T = vm.lookup_global(FQN("builtins::str"))
+            assert isinstance(r_T, W_Type)
+            w_functype = W_FuncType.new(params, w_restype=r_T)
+            fqn = self.fqn.join("__repr__")
+
+            return W_ASTFunc(
+                w_functype,
+                fqn,
+                funcdef,
+                closure=(),
+                defaults_w=[],
+                lowering_stage="source",
+            )
+
+        # Add repr as a lazy attribute if not already in dict
+        if not "__repr__" in self._dict_w:
+            self._dict_w["__repr__"] = W_LazyASTFunc(self, _create_generic_repr)
 
     def _storage_sanity_check(self, pyclass: Type[W_Object]) -> None:
         storage = pyclass.__spy_storage_category__
@@ -723,7 +812,7 @@ class W_Type(W_Object):
         """
         for w_T in self.get_mro():
             if w_obj := w_T.dict_w.get(name):
-                if isinstance(w_obj, W_LazyAttr):
+                if isinstance(w_obj, W_Lazy):
                     # always resolve through vm: W_Type is a singleton shared
                     # across vm instances, so vm-specific objects must never
                     # be cached back into dict_w.
