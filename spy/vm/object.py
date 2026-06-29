@@ -435,13 +435,17 @@ class W_LazyASTFunc(W_Lazy):
     __spy_storage_category__ = "reference"
 
     def __init__(
-        self, _type: W_Type, func_factory: Callable[[W_Type, "SPyVM"], W_ASTFunc]
+        self,
+        _type: W_Type,
+        func_factory: Callable[[W_Type, "SPyVM"], tuple[FQN, W_ASTFunc]],
     ) -> None:
         self._type = _type
         self.func_factory = func_factory
 
     def load(self, vm: "SPyVM") -> W_Object:
-        return self.func_factory(self._type, vm)
+        fqn, func = self.func_factory(self._type, vm)
+        vm.add_global(fqn, func)
+        return func
 
 
 class W_Type(W_Object):
@@ -572,7 +576,7 @@ class W_Type(W_Object):
             # autogen __eq__ and __ne__ if possible
             self._add_eq_ne_maybe(pyclass)
 
-        def _create_generic_repr(self: "W_Type", vm: "SPyVM") -> W_ASTFunc:
+        def _create_generic_repr(self: "W_Type", vm: "SPyVM") -> tuple[FQN, W_ASTFunc]:
             """
             Generic a __repr__ method as an ASTFunc.
             """
@@ -630,8 +634,7 @@ class W_Type(W_Object):
                 lowering_stage="source",
             )
 
-            vm.add_global(fqn, w_astfunc)
-            return w_astfunc
+            return fqn, w_astfunc
 
         # Add repr as a lazy attribute if not already in dict
         if not "__repr__" in self._dict_w:
