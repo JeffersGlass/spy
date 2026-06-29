@@ -44,7 +44,6 @@ For simple cases, SPy app-level types are instances of W_Type, which is
 basically a thin wrapper around the correspindig interp-level W_* class.
 """
 
-import functools
 import typing
 from dataclasses import dataclass
 from dataclasses import field as dataclass_field
@@ -63,6 +62,7 @@ from typing import (
 )
 
 import spy.ast as ast
+from spy.analyze.scope import ScopeAnalyzer
 from spy.ast import Color
 from spy.errors import WIP, SPyError
 from spy.fqn import FQN
@@ -403,13 +403,17 @@ class W_Object:
 
 
 class W_Lazy(W_Object):
+    """
+    Superclass for lazy-loading attributes
+    """
+
     def load(self, vm: "SPyVM") -> W_Object:
         raise NotImplementedError("Override in subclass")
 
 
 class W_LazyAttr(W_Lazy):
     """
-    Special object stored in W_Type.dict_w for lazy loading stdlib methods.
+    Special object stored in W_Type.dict_w for lazy loading stdlib methods written in SPy.
     See also __spy_lazy_attributes__.
     """
 
@@ -424,6 +428,10 @@ class W_LazyAttr(W_Lazy):
 
 
 class W_LazyASTFunc(W_Lazy):
+    """
+    Special object stored in W_Type.dict_w for lazy loading stdlib methods written in as ASTFuncs.
+    """
+
     __spy_storage_category__ = "reference"
 
     def __init__(
@@ -568,7 +576,6 @@ class W_Type(W_Object):
             """
             Generic a __repr__ method as an ASTFunc.
             """
-            from spy.analyze.scope import ScopeAnalyzer
             from spy.vm.function import W_ASTFunc
 
             literal = ast.StrLiteral(
@@ -614,7 +621,7 @@ class W_Type(W_Object):
             w_functype = W_FuncType.new(params, w_restype=r_T)
             fqn = self.fqn.join("__repr__")
 
-            return W_ASTFunc(
+            w_astfunc = W_ASTFunc(
                 w_functype,
                 fqn,
                 funcdef,
@@ -622,6 +629,9 @@ class W_Type(W_Object):
                 defaults_w=[],
                 lowering_stage="source",
             )
+
+            vm.add_global(fqn, w_astfunc)
+            return w_astfunc
 
         # Add repr as a lazy attribute if not already in dict
         if not "__repr__" in self._dict_w:
