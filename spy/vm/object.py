@@ -388,7 +388,7 @@ class W_Lazy(W_Object):
     """
 
     def load(self, vm: "SPyVM") -> W_Object:
-        raise NotImplementedError("Override in subclass")
+        raise NotImplementedError("Implementation must be overridden in subclass")
 
 
 class W_LazyAttr(W_Lazy):
@@ -417,15 +417,24 @@ class W_LazyASTFunc(W_Lazy):
     def __init__(
         self,
         _type: W_Type,
-        func_factory: Callable[[W_Type, "SPyVM"], tuple[FQN, W_ASTFunc]],
+        factory_func: Callable[[W_Type, "SPyVM", FQN], tuple[FQN, W_ASTFunc]],
+        fqn: FQN,
     ) -> None:
+        """
+        Args:
+            factory_func (Callable[[&quot;SPyVM&quot;, W_Type], tuple[FQN, W_ASTFunc]]): A function which takes a SPyVM and a type,
+            and returns the FQN that the new function should be stored to as well as an W_ASTFunc to bind to that FQN.
+            _type (W_Type): The type on which the lazy attribute will be stored
+            fqn: (FQN): The FQN where the function can be retrieved
+        """
         self._type = _type
-        self.func_factory = func_factory
+        self.func_factory = factory_func
+        self.fqn = fqn
 
     def load(self, vm: "SPyVM") -> W_Object:
-        fqn, func = self.func_factory(self._type, vm)
-        vm.add_global(fqn, func)
-        return func
+        ast_func = self.func_factory(self._type, vm, self.fqn)
+        vm.add_global(self.fqn, ast_func)
+        return ast_func
 
 
 class W_Type(W_Object):
@@ -556,69 +565,70 @@ class W_Type(W_Object):
             # autogen __eq__ and __ne__ if possible
             self._add_eq_ne_maybe(pyclass)
 
-        def _create_generic_repr(self: "W_Type", vm: "SPyVM") -> tuple[FQN, W_ASTFunc]:
-            """
-            Generic a __repr__ method as an ASTFunc.
-            """
-            from spy.vm.function import W_ASTFunc
-
-            literal = ast.StrLiteral(
-                loc=Loc.here(),
-                value=f"<spy {self.fqn.human_symbol_name(vm)} object>",
-            )
-
-            stmt = ast.Return(Loc.here(), literal)
-
-            from spy.vm.function import FuncParam, W_FuncType
-            from spy.vm.str import W_Str
-
-            self_type = ast.FQNConst(Loc.here(), self.fqn)
-
-            funcdef = ast.FuncDef(
-                loc=Loc.here(),
-                color="blue",
-                kind="plain",
-                name="__repr__",
-                args=[
-                    ast.FuncArg(Loc.here(), "self", self_type, "simple"),
-                ],
-                return_type=ast.FQNConst(Loc.here(), FQN("builtins::str")),
-                defaults=[],
-                docstring=None,
-                body=[stmt],
-                decorators=[],
-            )
-
-            # create a fake module so that we can run ScopeAnalyzer
-            module = ast.Module(
-                loc=Loc.here(),
-                filename="<generated>",
-                docstring=None,
-                decls=[ast.GlobalFuncDef(Loc.here(), funcdef)],
-            )
-            analyzer = ScopeAnalyzer(self.fqn.modname, module)
-            analyzer.analyze()
-
-            params = [FuncParam(self, "simple")]
-            r_T = vm.lookup_global(FQN("builtins::str"))
-            assert isinstance(r_T, W_Type)
-            w_functype = W_FuncType.new(params, w_restype=r_T)
-            fqn = self.fqn.join("__repr__")
-
-            w_astfunc = W_ASTFunc(
-                w_functype,
-                fqn,
-                funcdef,
-                closure=(),
-                defaults_w=[],
-                lowering_stage="source",
-            )
-
-            return fqn, w_astfunc
-
         # Add repr as a lazy attribute if not already in dict
         if not "__repr__" in self._dict_w:
-            self._dict_w["__repr__"] = W_LazyASTFunc(self, _create_generic_repr)
+            fqn = self.fqn.join("__repr__")
+            self._dict_w["__repr__"] = W_LazyASTFunc(
+                self, self._create_generic_repr, fqn
+            )
+
+    @staticmethod
+    def _create_generic_repr(self: "W_Type", vm: "SPyVM", fqn: FQN) -> tuple[W_ASTFunc]:
+        """
+        Generate a __repr__ method as an ASTFunc.
+        """
+
+        # imported here to avoid circular imports
+        from spy.vm.function import FuncParam, W_ASTFunc, W_FuncType
+
+        literal = ast.StrLiteral(
+            loc=Loc.here(),
+            value=f"<spy {self.fqn.human_symbol_name(vm)} object>",
+        )
+
+        stmt = ast.Return(Loc.here(), literal)
+        self_type = ast.FQNConst(Loc.here(), self.fqn)
+
+        funcdef = ast.FuncDef(
+            loc=Loc.here(),
+            color="blue",
+            kind="plain",
+            name="__repr__",
+            args=[
+                ast.FuncArg(Loc.here(), "self", self_type, "simple"),
+            ],
+            return_type=ast.FQNConst(Loc.here(), FQN("builtins::str")),
+            defaults=[],
+            docstring=None,
+            body=[stmt],
+            decorators=[],
+        )
+
+        # create a fake module so that we can run ScopeAnalyzer
+        module = ast.Module(
+            loc=Loc.here(),
+            filename="<generated>",
+            docstring=None,
+            decls=[ast.GlobalFuncDef(Loc.here(), funcdef)],
+        )
+        analyzer = ScopeAnalyzer(self.fqn.modname, module)
+        analyzer.analyze()
+
+        params = [FuncParam(self, "simple")]
+        r_T = vm.lookup_global(FQN("builtins::str"))
+        assert isinstance(r_T, W_Type)
+        w_functype = W_FuncType.new(params, w_restype=r_T)
+
+        w_astfunc = W_ASTFunc(
+            w_functype,
+            fqn,
+            funcdef,
+            closure=(),
+            defaults_w=[],
+            lowering_stage="source",
+        )
+
+        return w_astfunc
 
     def _storage_sanity_check(self, pyclass: Type[W_Object]) -> None:
         storage = pyclass.__spy_storage_category__
