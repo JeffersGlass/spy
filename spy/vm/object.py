@@ -417,7 +417,7 @@ class W_LazyASTFunc(W_Lazy):
     def __init__(
         self,
         _type: W_Type,
-        factory_func: Callable[[W_Type, "SPyVM", FQN], tuple[FQN, W_ASTFunc]],
+        factory_func: Callable[[W_Type, "SPyVM", FQN], W_ASTFunc],
         fqn: FQN,
     ) -> None:
         """
@@ -573,7 +573,7 @@ class W_Type(W_Object):
             )
 
     @staticmethod
-    def _create_generic_repr(self: "W_Type", vm: "SPyVM", fqn: FQN) -> tuple[W_ASTFunc]:
+    def _create_generic_repr(self: "W_Type", vm: "SPyVM", fqn: FQN) -> W_ASTFunc:
         """
         Generate a __repr__ method as an ASTFunc.
         """
