@@ -355,7 +355,7 @@ class TestStr(CompilerTest):
         for s in test_cases:
             assert mod.repr_str(s) == repr(s)
 
-    @skip_backends("C", reason="`type` type not supported")
+    @skip_backends("C", reason="`object` type not supported")
     def test_generic_repr(self):
         src = """
         def get_repr(o: object) -> str:
@@ -366,7 +366,22 @@ class TestStr(CompilerTest):
         """
         mod = self.compile(src)
         s = mod.foo()
-        assert re.fullmatch(r"<spy `object` object at 0x.+>", s)
+        print(s)
+        assert re.fullmatch(r"<spy object object>", s)
+
+    def test_generic_repr_struct(self):
+        src = """
+        @struct
+        class Point:
+            x: int
+
+        def foo() -> str:
+            return repr(Point(1))
+        """
+        mod = self.compile(src)
+        s = mod.foo()
+        print(s)
+        assert re.fullmatch(r"<spy Point object>", s)
 
     def test_str_fallback_to_repr(self):
         # str() should fallback to repr() for types without custom __str__
