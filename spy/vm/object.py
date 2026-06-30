@@ -246,26 +246,6 @@ class W_Object:
     def spy_dir(self, vm: "SPyVM") -> set[str]:
         return set()
 
-    @builtin_method("__repr__", color="blue", kind="metafunc")
-    @staticmethod
-    def w_REPR(vm: "SPyVM", wam_self: "W_MetaArg") -> "W_OpSpec":
-        from spy.vm.irtag import IRTag
-        from spy.vm.opspec import W_OpSpec
-        from spy.vm.str import W_Str
-
-        w_T = wam_self.w_static_T
-        T = Annotated[W_Object, w_T]
-        irtag = IRTag("object.repr", w_T=w_T)
-
-        @vm.register_builtin_func(w_T.fqn, "__generic_repr__", irtag=irtag)
-        def w_generic_repr(vm: "SPyVM", w_obj: T) -> W_Str:
-            tname = w_T.fqn.debug_human_name
-            addr = f"0x{id(w_obj):x}"
-            s = f"<spy `{tname}` object at {addr}>"
-            return vm.wrap(s)
-
-        return W_OpSpec(w_generic_repr, [wam_self])
-
     @builtin_method("__str__", color="blue", kind="metafunc")
     @staticmethod
     def w_STR(vm: "SPyVM", wam_self: "W_MetaArg") -> "W_OpSpec":
